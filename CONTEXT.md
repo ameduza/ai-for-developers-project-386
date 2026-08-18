@@ -22,9 +22,9 @@ _Avoid_: reservation, registration, appointment
 The person whose calendar is being booked. They publish available time slots and can view upcoming meetings.
 _Avoid_: admin, host, provider, user
 
-**Visitor**:
+**Guest**:
 A person who views available time slots and books one for a call.
-_Avoid_: customer, user, guest, attendee
+_Avoid_: customer, user, visitor, attendee
 
 **API Contract**:
 The TypeSpec-defined interface between frontend and backend, established before either is implemented. Serves as the single source of truth for both sides.
