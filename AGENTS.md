@@ -11,7 +11,7 @@ Issues and specs live as GitHub issues. see [docs/agents/issue-tracker.md](docs/
 
 ### Triage labels
 
-Five canonical roles map to GitHub labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Five canonical roles map to GitHub labels. See [triage-labels.md](docs/agents/triage-labels.md).
 
 ### Domain docs
 
