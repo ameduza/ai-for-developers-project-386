@@ -29,12 +29,6 @@ model CreateBookingType {
   durationMinutes: int32;
 }
 
-model UpdateBookingType {
-  title?: string;
-  description?: string;
-  durationMinutes?: int32;
-}
-
 /** An available time window within the 14-day booking window. */
 model TimeSlot {
   @key
@@ -44,25 +38,27 @@ model TimeSlot {
   available: boolean;
 }
 
-/** Visitor contact details provided when booking. */
-model Visitor {
+/** Guest contact details provided when booking. */
+model Guest {
   name: string;
   email: string;
 }
 
-/** A confirmed booking made by a visitor for a specific time slot. */
+/** A confirmed booking made by a guest for a specific time slot. */
 model Booking {
   @key
   id: string;
   bookingType: BookingType;
   timeSlot: TimeSlot;
-  visitor: Visitor;
+  guest: Guest;
 }
 
 model CreateBooking {
-  bookingTypeId: string;
-  timeSlotId: string;
-  visitor: Visitor;
+  eventTypeId: string;
+  slotStart: utcDateTime;
+  slotEnd: utcDateTime;
+  guestName: string;
+  guestEmail: string;
 }
 
 model Error {
@@ -97,25 +93,17 @@ namespace BookingService {
     @route("/booking-types")
     op createBookingType(@body bookingType: CreateBookingType): BookingType;
 
-    /** Update an existing booking type. */
-    @patch
-    @route("/booking-types/{id}")
-    op updateBookingType(
-      @path id: string,
-      @body bookingType: UpdateBookingType,
-    ): BookingType;
-
     /** View upcoming bookings across all booking types. */
     @get
     @route("/bookings")
     op listUpcomingBookings(): List<Booking>;
   }
 
-  // ─── Visitor routes ───────────────────────────────────────────
+  // ─── Guest routes ─────────────────────────────────────────────
 
   @route("/booking-types")
   namespace BookingTypes {
-    /** List booking types visible to visitors. */
+    /** List booking types visible to guests. */
     @get
     op listBookingTypes(): List<BookingType>;
 
@@ -133,7 +121,29 @@ namespace BookingService {
       @body booking: CreateBooking,
     ):
       | { @statusCode statusCode: 201; @body body: Booking; }
+      | { @statusCode statusCode: 400; @body body: Error; }
+      | { @statusCode statusCode: 404; @body body: Error; }
       | { @statusCode statusCode: 409; @body body: Error; }
-      | { @statusCode statusCode: 422; @body body: Error; };
+      | { @statusCode statusCode: 500; @body body: Error; };
+
+    /** Retrieve a booking by id (guest access). */
+    @get
+    @route("/{id}")
+    op get(
+      @path id: string,
+    ):
+      | { @statusCode statusCode: 200; @body body: Booking; }
+      | { @statusCode statusCode: 404; @body body: Error; }
+      | { @statusCode statusCode: 500; @body body: Error; };
+
+    /** Cancel a booking (guest access). */
+    @delete
+    @route("/{id}")
+    op delete(
+      @path id: string,
+    ):
+      | { @statusCode statusCode: 204; }
+      | { @statusCode statusCode: 404; @body body: Error; }
+      | { @statusCode statusCode: 500; @body body: Error; };
   }
 }
