@@ -1,0 +1,22 @@
+{
+  "name": "calendar-booking",
+  "version": "1.0.0",
+  "description": "Sandbox meeting booking project built with power of AI",
+  "homepage": "https://github.com/ameduza/ai-for-developers-project-386#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ameduza/ai-for-developers-project-386.git"
+  },
+  "author": "ameduza",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
