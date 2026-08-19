@@ -19,8 +19,8 @@ export function GuestLandingPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Later tickets will add slot browsing and booking; this scaffold already reads
-            the contract-backed booking types.
+            Later tickets will add availability browsing and booking; this scaffold already
+            reads the contract-backed booking types.
           </p>
           <Button asChild variant="outline">
             <Link to="/">Back to home</Link>
@@ -56,7 +56,7 @@ export function GuestLandingPage() {
                 <CardContent className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
                   <span>{bookingType.durationMinutes} minutes</span>
                   <Button asChild size="sm" variant="outline">
-                    <Link to={`/guest/booking-types/${bookingType.id}`}>View slots</Link>
+                    <Link to={`/guest/booking-types/${bookingType.id}`}>View availability</Link>
                   </Button>
                 </CardContent>
               </Card>
