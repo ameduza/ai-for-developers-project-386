@@ -9,7 +9,7 @@
     "dev": "cross-env VITE_API_BASE_URL=http://127.0.0.1:4010 concurrently -k -n mock,web -c cyan,magenta \"npm run dev:mock\" \"npm run dev:web\"",
     "build:contract": "node scripts/build-contract.mjs",
     "generate:api": "npm run build:contract && node scripts/generate-api.mjs",
-    "build": "npm run generate:api && vite build",
+    "build": "npm run generate:api && cross-env VITE_API_BASE_URL=http://127.0.0.1:4010 vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
