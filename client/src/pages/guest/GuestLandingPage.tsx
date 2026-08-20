@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Sparkles, Ticket } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useGuestBookingTypesQuery } from "@/features/guest/queries";
@@ -14,13 +13,13 @@ export function GuestLandingPage() {
         <CardHeader>
           <CardTitle>Guest area</CardTitle>
           <CardDescription>
-            The first live request is wired here through the generated API client.
+            Foundation placeholder for future booking flows.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Later tickets will add availability browsing and booking; this scaffold already
-            reads the contract-backed booking types.
+            Later tickets will add availability browsing and booking creation.
+            This scaffold demonstrates one live request through the generated API client.
           </p>
           <Button asChild variant="outline">
             <Link to="/">Back to home</Link>
@@ -28,42 +27,34 @@ export function GuestLandingPage() {
         </CardContent>
       </Card>
 
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Sparkles className="h-4 w-4 text-primary" />
-          Booking types
-        </div>
-
-        {bookingTypesQuery.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading booking types...</p>
-        ) : bookingTypesQuery.isError ? (
-          <p className="text-sm text-destructive">
-            Could not load booking types.
-          </p>
-        ) : bookingTypes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No booking types are published yet.</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {bookingTypes.map((bookingType) => (
-              <Card key={bookingType.id} className="h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Ticket className="h-4 w-4 text-primary" />
-                    {bookingType.title}
-                  </CardTitle>
-                  <CardDescription>{bookingType.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
-                  <span>{bookingType.durationMinutes} minutes</span>
-                  <Button asChild size="sm" variant="outline">
-                    <Link to={`/guest/booking-types/${bookingType.id}`}>View availability</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
+      <Card className="max-w-3xl">
+        <CardHeader>
+          <CardTitle className="text-base">API client demo</CardTitle>
+          <CardDescription>
+            Live query using the generated client and TanStack Query.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {bookingTypesQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading booking types...</p>
+          ) : bookingTypesQuery.isError ? (
+            <p className="text-sm text-destructive">
+              Could not load booking types. Is the mock server running?
+            </p>
+          ) : bookingTypes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No booking types are published yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {bookingTypes.map((bookingType) => (
+                <li key={bookingType.id} className="text-sm">
+                  <span className="font-medium text-foreground">{bookingType.title}</span>
+                  <span className="text-muted-foreground"> — {bookingType.durationMinutes} min</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

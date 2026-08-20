@@ -13,11 +13,12 @@ export function GuestBookingTypePage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Selected booking type id: <span className="font-medium text-foreground">{bookingTypeId}</span>
+          Selected booking type id:{" "}
+          <span className="font-medium text-foreground">{bookingTypeId}</span>
         </p>
         <p className="text-sm text-muted-foreground">
-          This placeholder route is wired so the later availability calendar can drop in
-          without changing the URL shape.
+          This placeholder route preserves the URL shape for the future availability
+          calendar.
         </p>
         <Button asChild variant="outline">
           <Link to="/guest">Back to guest area</Link>

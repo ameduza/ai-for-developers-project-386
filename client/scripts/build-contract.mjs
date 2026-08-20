@@ -3,10 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const clientRoot = path.resolve(scriptDir, "..");
-const typespecRoot = path.resolve(clientRoot, "..", "typespec");
+const repoRoot = path.resolve(scriptDir, "..", "..");
 
-execSync("npm exec -- tsp compile .", {
-  cwd: typespecRoot,
+execSync("npm run build:contract --workspace typespec", {
+  cwd: repoRoot,
   stdio: "inherit",
 });

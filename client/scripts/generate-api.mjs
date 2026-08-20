@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,11 +9,6 @@ const repoRoot = path.resolve(clientRoot, "..");
 const typespecRoot = path.resolve(repoRoot, "typespec");
 const outputDir = path.resolve(clientRoot, "src", "lib", "api", "generated");
 const specPath = path.resolve(typespecRoot, "tsp-output", "schema", "openapi.yaml");
-
-execSync("npm exec -- tsp compile .", {
-  cwd: typespecRoot,
-  stdio: "inherit",
-});
 
 rmSync(outputDir, { recursive: true, force: true });
 
