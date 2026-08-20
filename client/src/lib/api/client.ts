@@ -21,6 +21,10 @@ export function listOwnerBookingTypes() {
   return DefaultService.ownerRoutesListBookingTypes();
 }
 
+export function listOwnerUpcomingBookings() {
+  return DefaultService.ownerRoutesListUpcomingBookings();
+}
+
 export function createOwnerBookingType(bookingType: CreateBookingType) {
   return DefaultService.ownerRoutesCreateBookingType({
     requestBody: bookingType,

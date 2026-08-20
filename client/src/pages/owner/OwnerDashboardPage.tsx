@@ -2,12 +2,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { OwnerProfile } from "@/features/owner/OwnerProfile";
 import { BookingTypeCard } from "@/features/owner/BookingTypeCard";
 import { CreateBookingTypeForm } from "@/features/owner/CreateBookingTypeForm";
-import { useOwnerProfileQuery, useOwnerBookingTypesQuery } from "@/features/owner/queries";
+import { UpcomingBookingsList } from "@/features/owner/UpcomingBookingsList";
+import {
+  useOwnerProfileQuery,
+  useOwnerBookingTypesQuery,
+  useOwnerUpcomingBookingsQuery,
+} from "@/features/owner/queries";
 
 export function OwnerDashboardPage() {
   const profileQuery = useOwnerProfileQuery();
   const bookingTypesQuery = useOwnerBookingTypesQuery();
+  const upcomingBookingsQuery = useOwnerUpcomingBookingsQuery();
   const bookingTypes = bookingTypesQuery.data?.items ?? [];
+  const upcomingBookings = upcomingBookingsQuery.data?.items ?? [];
 
   return (
     <div className="space-y-6">
@@ -53,6 +60,12 @@ export function OwnerDashboardPage() {
         {/* Create New Booking Type Form */}
         <CreateBookingTypeForm />
       </div>
+
+      <UpcomingBookingsList
+        bookings={upcomingBookings}
+        isLoading={upcomingBookingsQuery.isLoading}
+        isError={upcomingBookingsQuery.isError}
+      />
     </div>
   );
 }
