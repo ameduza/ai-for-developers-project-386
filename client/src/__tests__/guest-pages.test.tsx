@@ -48,7 +48,7 @@ after(() => {
   }
 });
 
-const { render, screen, cleanup } = await import("@testing-library/react");
+const { render, screen, cleanup, waitFor } = await import("@testing-library/react");
 const { QueryClient, QueryClientProvider } = await import(
   "@tanstack/react-query"
 );
@@ -65,6 +65,7 @@ const { GuestBookingConfirmationPage } = await import(
 
 afterEach(() => {
   cleanup();
+  globalThis.fetch = (dom.window as Record<string, typeof fetch>).fetch;
 });
 
 function createTestQueryClient() {
@@ -111,16 +112,99 @@ describe("GuestLandingPage", () => {
     // This test validates that the heading exists
     assert.ok(screen.getByText(/Available Booking Types/i));
   });
+
+  it("links a booking type to its available time slots", async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "consultation",
+              title: "Product strategy",
+              description: "Discuss the next product milestone.",
+              durationMinutes: 30,
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+    renderWithProviders(<GuestLandingPage />);
+
+    await waitFor(() => {
+      assert.equal(
+        screen.getByRole("link", { name: "Book Now" }).getAttribute("href"),
+        "/guest/booking-types/consultation",
+      );
+    });
+  });
 });
 
 describe("GuestBookingTypePage", () => {
-  it("renders placeholder with booking type id", () => {
+  it("shows the selected booking type id", () => {
     renderWithProviders(
       <GuestBookingTypePage />,
       "/guest/booking-types/abc-123",
     );
-    assert.ok(screen.getByText("Booking type"));
-    assert.ok(screen.getByText("abc-123"));
+    assert.ok(screen.getByText("Available time slots"));
+    assert.ok(screen.getByText(/abc-123/));
+  });
+
+  it("shows only free slots within the next 14 days", async () => {
+    const now = Date.now();
+    const availableSlot = {
+      id: "available-slot",
+      startTime: new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      endTime: new Date(now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+      available: true,
+    };
+    const slots = {
+      items: [
+        availableSlot,
+        {
+          id: "booked-slot",
+          startTime: new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(now + 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+          available: false,
+        },
+        {
+          id: "too-far-slot",
+          startTime: new Date(now + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(now + 15 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+          available: true,
+        },
+        {
+          id: "past-slot",
+          startTime: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(now - 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+          available: true,
+        },
+      ],
+    };
+
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify(slots), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+
+    renderWithProviders(
+      <GuestBookingTypePage />,
+      "/guest/booking-types/consultation",
+    );
+
+    await waitFor(() => {
+      assert.equal(screen.getAllByRole("listitem").length, 1);
+    });
+
+    const visibleSlot = screen.getAllByRole("listitem")[0];
+    assert.equal(
+      visibleSlot?.querySelector("time")?.getAttribute("dateTime"),
+      availableSlot.startTime,
+    );
   });
 });
 

@@ -5,6 +5,7 @@ process.env.VITE_API_BASE_URL = "http://127.0.0.1:4010";
 
 const { DefaultService, OpenAPI, ApiError, CancelablePromise, CancelError } =
   await import("../lib/api/generated/index.js");
+const { listGuestTimeSlots } = await import("../lib/api/client.js");
 
 describe("generated API client exports", () => {
   it("exports DefaultService with expected methods", () => {
@@ -21,6 +22,41 @@ describe("generated API client exports", () => {
       typeof DefaultService.ownerRoutesListUpcomingBookings,
       "function",
     );
+  });
+
+  it("lists time slots for a guest booking type", async () => {
+    OpenAPI.BASE = "http://127.0.0.1:4010";
+    const originalFetch = globalThis.fetch;
+    let requestedUrl = "";
+
+    globalThis.fetch = async (input) => {
+      requestedUrl = String(input);
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "slot-1",
+              startTime: "2026-08-21T10:00:00Z",
+              endTime: "2026-08-21T10:30:00Z",
+              available: true,
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    };
+
+    try {
+      const result = await listGuestTimeSlots("consultation");
+
+      assert.equal(requestedUrl, "http://127.0.0.1:4010/booking-types/consultation/slots");
+      assert.equal(result.items[0]?.id, "slot-1");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("exports OpenAPI config", () => {

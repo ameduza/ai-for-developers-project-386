@@ -12,6 +12,10 @@ export function listGuestBookingTypes() {
   return DefaultService.bookingTypesListBookingTypes();
 }
 
+export function listGuestTimeSlots(bookingTypeId: string) {
+  return DefaultService.bookingTypesListSlots({ id: bookingTypeId });
+}
+
 // Owner routes
 export function getOwnerProfile() {
   return DefaultService.ownerRoutesGetOwner();
