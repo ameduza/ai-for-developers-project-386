@@ -21,7 +21,7 @@ export default typescriptEslint.config(
   },
   ...typescriptEslint.configs.recommended.map((config) => ({
     ...config,
-    files: config.files ?? sourceFiles,
+    files: sourceFiles,
   })),
   {
     files: sourceFiles,
