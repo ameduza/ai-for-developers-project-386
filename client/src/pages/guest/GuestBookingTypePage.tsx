@@ -38,9 +38,9 @@ function formatTimeSlot(timeSlot: TimeSlot) {
 
 export function GuestBookingTypePage() {
   const { bookingTypeId } = useParams();
-  const slotsQuery = useGuestTimeSlotsQuery(bookingTypeId);
+  const timeSlotsQuery = useGuestTimeSlotsQuery(bookingTypeId);
   const now = Date.now();
-  const availableSlots = (slotsQuery.data?.items ?? [])
+  const availableTimeSlots = (timeSlotsQuery.data?.items ?? [])
     .filter((timeSlot) => timeSlot.available && isWithinBookingWindow(timeSlot, now))
     .sort((first, second) => first.startTime.localeCompare(second.startTime));
 
@@ -53,19 +53,19 @@ export function GuestBookingTypePage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {slotsQuery.isLoading ? (
+        {timeSlotsQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading available time slots...</p>
-        ) : slotsQuery.isError ? (
+        ) : timeSlotsQuery.isError ? (
           <p className="text-sm text-destructive">
             Could not load available time slots. Is the mock server running?
           </p>
-        ) : availableSlots.length === 0 ? (
+        ) : availableTimeSlots.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No free time slots are available in the next 14 days.
           </p>
         ) : (
           <ol aria-label="Available time slots" className="space-y-3">
-            {availableSlots.map((timeSlot) => (
+            {availableTimeSlots.map((timeSlot) => (
               <li key={timeSlot.id} className="rounded-lg border p-4">
                 <time
                   className="text-sm font-medium text-foreground"

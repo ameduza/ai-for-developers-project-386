@@ -155,15 +155,15 @@ describe("GuestBookingTypePage", () => {
 
   it("shows only free slots within the next 14 days", async () => {
     const now = Date.now();
-    const availableSlot = {
+    const availableTimeSlot = {
       id: "available-slot",
       startTime: new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString(),
       endTime: new Date(now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
       available: true,
     };
-    const slots = {
+    const timeSlots = {
       items: [
-        availableSlot,
+        availableTimeSlot,
         {
           id: "booked-slot",
           startTime: new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString(),
@@ -186,7 +186,7 @@ describe("GuestBookingTypePage", () => {
     };
 
     globalThis.fetch = async () =>
-      new Response(JSON.stringify(slots), {
+      new Response(JSON.stringify(timeSlots), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
@@ -200,10 +200,10 @@ describe("GuestBookingTypePage", () => {
       assert.equal(screen.getAllByRole("listitem").length, 1);
     });
 
-    const visibleSlot = screen.getAllByRole("listitem")[0];
+    const visibleTimeSlot = screen.getAllByRole("listitem")[0];
     assert.equal(
-      visibleSlot?.querySelector("time")?.getAttribute("dateTime"),
-      availableSlot.startTime,
+      visibleTimeSlot?.querySelector("time")?.getAttribute("dateTime"),
+      availableTimeSlot.startTime,
     );
   });
 });
