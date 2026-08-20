@@ -10,13 +10,15 @@
   "author": "ameduza",
   "type": "module",
   "workspaces": [
-    "client",
-    "server"
+    "typespec",
+    "client"
   ],
   "engines": {
     "node": ">=22.5.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:contract": "npm run build:contract --workspace typespec",
+    "test": "npm run test --workspace client",
+    "typecheck": "npm run typecheck --workspace client"
   }
 }
