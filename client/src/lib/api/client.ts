@@ -1,5 +1,5 @@
 import { DefaultService, OpenAPI } from "@/lib/api/generated";
-import type { CreateBookingType } from "@/lib/api/generated";
+import type { CreateBooking, CreateBookingType } from "@/lib/api/generated";
 import { getApiBaseUrl } from "@/lib/env";
 
 export function configureApiClient() {
@@ -14,6 +14,10 @@ export function listGuestBookingTypes() {
 
 export function listGuestTimeSlots(bookingTypeId: string) {
   return DefaultService.bookingTypesListSlots({ id: bookingTypeId });
+}
+
+export function createBooking(booking: CreateBooking) {
+  return DefaultService.bookingsCreate({ requestBody: booking });
 }
 
 // Owner routes

@@ -48,7 +48,9 @@ after(() => {
   }
 });
 
-const { render, screen, cleanup, waitFor } = await import("@testing-library/react");
+const { render, screen, cleanup, waitFor, fireEvent } = await import(
+  "@testing-library/react"
+);
 const { QueryClient, QueryClientProvider } = await import(
   "@tanstack/react-query"
 );
@@ -72,6 +74,10 @@ function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
+        retry: false,
+        gcTime: 0,
+      },
+      mutations: {
         retry: false,
         gcTime: 0,
       },
@@ -205,6 +211,111 @@ describe("GuestBookingTypePage", () => {
       visibleTimeSlot?.querySelector("time")?.getAttribute("dateTime"),
       availableTimeSlot.startTime,
     );
+  });
+
+  it("books a selected time slot and lands on the confirmation page", async () => {
+    const now = Date.now();
+    const slotStart = new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString();
+    const slotEnd = new Date(now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString();
+    const requests: Array<{ url: string; method?: string; body?: string }> = [];
+
+    globalThis.fetch = async (input, init) => {
+      requests.push({
+        url: String(input),
+        method: init?.method,
+        body: typeof init?.body === "string" ? init.body : undefined,
+      });
+
+      if (init?.method === "POST") {
+        return new Response(
+          JSON.stringify({
+            id: "booking-42",
+            bookingType: {
+              id: "consultation",
+              title: "Product strategy",
+              description: "Discuss the next product milestone.",
+              durationMinutes: 30,
+            },
+            timeSlot: {
+              id: "available-slot",
+              startTime: slotStart,
+              endTime: slotEnd,
+              available: false,
+            },
+            guest: { name: "Ada Lovelace", email: "ada@example.com" },
+          }),
+          {
+            status: 201,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "available-slot",
+              startTime: slotStart,
+              endTime: slotEnd,
+              available: true,
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    };
+
+    const qc = createTestQueryClient();
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/guest/booking-types/:bookingTypeId",
+          element: <GuestBookingTypePage />,
+        },
+        {
+          path: "/bookings/:bookingId",
+          element: <p>Booking confirmation reached</p>,
+        },
+      ],
+      { initialEntries: ["/guest/booking-types/consultation"] },
+    );
+    render(
+      <QueryClientProvider client={qc}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      assert.ok(screen.getByRole("radio"));
+    });
+
+    fireEvent.click(screen.getByRole("radio"));
+    fireEvent.change(screen.getByLabelText("Your name"), {
+      target: { value: "Ada Lovelace" },
+    });
+    fireEvent.change(screen.getByLabelText("Your email"), {
+      target: { value: "ada@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm booking" }));
+
+    await waitFor(() => {
+      assert.ok(screen.getByText("Booking confirmation reached"));
+    });
+
+    const post = requests.find((request) => request.method === "POST");
+    assert.ok(post, "Expected a POST request to /bookings");
+    assert.ok(post.url.endsWith("/bookings"));
+    assert.deepEqual(JSON.parse(post.body ?? "{}"), {
+      eventTypeId: "consultation",
+      slotStart,
+      slotEnd,
+      guestName: "Ada Lovelace",
+      guestEmail: "ada@example.com",
+    });
   });
 });
 
