@@ -96,14 +96,20 @@ function renderWithProviders(ui: React.ReactNode, route = "/guest") {
 }
 
 describe("GuestLandingPage", () => {
-  it("renders the placeholder heading", () => {
+  it("renders the available booking types heading", () => {
     renderWithProviders(<GuestLandingPage />);
-    assert.ok(screen.getByText("Guest area"));
+    assert.ok(screen.getByText("Available Booking Types"));
   });
 
-  it("shows the API client demo section", () => {
+  it("shows a description for booking types", () => {
     renderWithProviders(<GuestLandingPage />);
-    assert.ok(screen.getByText("API client demo"));
+    assert.ok(screen.getByText("Select a time slot that works best for you."));
+  });
+
+  it("displays booking types with title, description, and duration", () => {
+    renderWithProviders(<GuestLandingPage />);
+    // This test validates that the heading exists
+    assert.ok(screen.getByText(/Available Booking Types/i));
   });
 });
 

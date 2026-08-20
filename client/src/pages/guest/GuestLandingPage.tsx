@@ -9,29 +9,11 @@ export function GuestLandingPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="max-w-3xl">
+      <Card>
         <CardHeader>
-          <CardTitle>Guest area</CardTitle>
+          <CardTitle>Available Booking Types</CardTitle>
           <CardDescription>
-            Foundation placeholder for future booking flows.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Later tickets will add availability browsing and booking creation.
-            This scaffold demonstrates one live request through the generated API client.
-          </p>
-          <Button asChild variant="outline">
-            <Link to="/">Back to home</Link>
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="max-w-3xl">
-        <CardHeader>
-          <CardTitle className="text-base">API client demo</CardTitle>
-          <CardDescription>
-            Live query using the generated client and TanStack Query.
+            Select a time slot that works best for you.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -44,14 +26,26 @@ export function GuestLandingPage() {
           ) : bookingTypes.length === 0 ? (
             <p className="text-sm text-muted-foreground">No booking types are published yet.</p>
           ) : (
-            <ul className="space-y-2">
+            <div className="space-y-4">
               {bookingTypes.map((bookingType) => (
-                <li key={bookingType.id} className="text-sm">
-                  <span className="font-medium text-foreground">{bookingType.title}</span>
-                  <span className="text-muted-foreground"> — {bookingType.durationMinutes} min</span>
-                </li>
+                <Card key={bookingType.id} className="border">
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-semibold text-foreground">{bookingType.title}</h4>
+                        <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {bookingType.durationMinutes} min
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{bookingType.description}</p>
+                      <Button asChild className="w-full mt-4">
+                        <Link to={`/guest/booking-types/${bookingType.id}`}>Book Now</Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
-            </ul>
+            </div>
           )}
         </CardContent>
       </Card>
