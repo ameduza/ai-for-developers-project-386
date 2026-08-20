@@ -1,5 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { listGuestBookingTypes, listGuestTimeSlots } from "@/lib/api/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  createBooking,
+  listGuestBookingTypes,
+  listGuestTimeSlots,
+} from "@/lib/api/client";
 
 export function useGuestBookingTypesQuery() {
   return useQuery({
@@ -19,5 +23,18 @@ export function useGuestTimeSlotsQuery(bookingTypeId: string | undefined) {
       return listGuestTimeSlots(bookingTypeId);
     },
     enabled: Boolean(bookingTypeId),
+  });
+}
+
+export function useCreateBookingMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createBooking,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["guest-time-slots"],
+      });
+    },
   });
 }
