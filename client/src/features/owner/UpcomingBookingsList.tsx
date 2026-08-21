@@ -5,32 +5,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { Booking, TimeSlot } from "@/lib/api/generated";
+import type { Booking } from "@/lib/api/generated";
+import { formatTimeSlot } from "@/lib/formatters";
 
 interface UpcomingBookingsListProps {
   bookings: Booking[];
   isLoading: boolean;
   isError: boolean;
-}
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  day: "numeric",
-  month: "long",
-  timeZone: "UTC",
-  year: "numeric",
-});
-
-const timeFormatter = new Intl.DateTimeFormat("en-US", {
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
-});
-
-function formatTimeSlot(timeSlot: TimeSlot) {
-  const start = new Date(timeSlot.startTime);
-  const end = new Date(timeSlot.endTime);
-
-  return `${dateFormatter.format(start)} · ${timeFormatter.format(start)}–${timeFormatter.format(end)} UTC`;
 }
 
 export function UpcomingBookingsList({

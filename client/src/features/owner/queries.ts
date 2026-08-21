@@ -6,24 +6,25 @@ import {
   createOwnerBookingType,
 } from "@/lib/api/client";
 import type { CreateBookingType } from "@/lib/api/generated";
+import { QUERY_KEYS } from "@/lib/constants";
 
 export function useOwnerProfileQuery() {
   return useQuery({
-    queryKey: ["owner-profile"],
+    queryKey: QUERY_KEYS.OWNER_PROFILE,
     queryFn: getOwnerProfile,
   });
 }
 
 export function useOwnerBookingTypesQuery() {
   return useQuery({
-    queryKey: ["owner-booking-types"],
+    queryKey: QUERY_KEYS.OWNER_BOOKING_TYPES,
     queryFn: listOwnerBookingTypes,
   });
 }
 
 export function useOwnerUpcomingBookingsQuery() {
   return useQuery({
-    queryKey: ["owner-upcoming-bookings"],
+    queryKey: QUERY_KEYS.OWNER_UPCOMING_BOOKINGS,
     queryFn: listOwnerUpcomingBookings,
   });
 }
@@ -36,7 +37,7 @@ export function useCreateOwnerBookingTypeMutation() {
       createOwnerBookingType(bookingType),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["owner-booking-types"],
+        queryKey: QUERY_KEYS.OWNER_BOOKING_TYPES,
       });
     },
   });

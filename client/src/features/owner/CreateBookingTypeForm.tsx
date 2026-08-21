@@ -14,6 +14,7 @@ import {
   type CreateBookingTypeFormData,
 } from "@/features/owner/schemas";
 import { useCreateOwnerBookingTypeMutation } from "@/features/owner/queries";
+import { TIMEOUTS } from "@/lib/constants";
 
 export function CreateBookingTypeForm() {
   const [successMessage, setSuccessMessage] = useState("");
@@ -38,7 +39,7 @@ export function CreateBookingTypeForm() {
       await mutation.mutateAsync(data);
       setSuccessMessage("Booking type created successfully!");
       reset();
-      setTimeout(() => setSuccessMessage(""), 3000);
+      setTimeout(() => setSuccessMessage(""), TIMEOUTS.SUCCESS_MESSAGE);
     } catch (error) {
       console.error("Error creating booking type:", error);
     }

@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { createBookingSchema } from "@/features/guest/schemas";
 
 const validBooking = {
-  eventTypeId: "consultation",
-  slotStart: "2026-10-15T10:00:00Z",
-  slotEnd: "2026-10-15T10:30:00Z",
+  bookingTypeId: "consultation",
+  timeSlotStart: "2026-10-15T10:00:00Z",
+  timeSlotEnd: "2026-10-15T10:30:00Z",
   guestName: "Ada Lovelace",
   guestEmail: "ada@example.com",
 };
@@ -47,34 +47,34 @@ describe("createBooking Schema Validation", () => {
   });
 
   it("rejects a missing booking type id", () => {
-    const invalidData = { ...validBooking, eventTypeId: "" };
+    const invalidData = { ...validBooking, bookingTypeId: "" };
     const result = createBookingSchema.safeParse(invalidData);
     assert.equal(
       result.success,
       false,
-      "Missing event type id should fail validation",
+      "Missing booking type id should fail validation",
     );
   });
 
   it("rejects missing time slot boundaries", () => {
     const missingStart = createBookingSchema.safeParse({
       ...validBooking,
-      slotStart: "",
+      timeSlotStart: "",
     });
     assert.equal(
       missingStart.success,
       false,
-      "Missing slot start should fail validation",
+      "Missing time slot start should fail validation",
     );
 
     const missingEnd = createBookingSchema.safeParse({
       ...validBooking,
-      slotEnd: "",
+      timeSlotEnd: "",
     });
     assert.equal(
       missingEnd.success,
       false,
-      "Missing slot end should fail validation",
+      "Missing time slot end should fail validation",
     );
   });
 });

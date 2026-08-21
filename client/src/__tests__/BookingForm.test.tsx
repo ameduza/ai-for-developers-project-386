@@ -164,9 +164,9 @@ describe("BookingForm", () => {
     assert.ok(post, "Expected a POST request to /bookings");
     assert.equal(post.init?.method, "POST");
     assert.deepEqual(JSON.parse(String(post.init?.body)), {
-      eventTypeId: "consultation",
-      slotStart: "2026-10-15T10:00:00Z",
-      slotEnd: "2026-10-15T10:30:00Z",
+      bookingTypeId: "consultation",
+      timeSlotStart: "2026-10-15T10:00:00Z",
+      timeSlotEnd: "2026-10-15T10:30:00Z",
       guestName: "Ada Lovelace",
       guestEmail: "ada@example.com",
     });
