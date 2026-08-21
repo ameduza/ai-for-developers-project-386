@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { Booking, TimeSlot } from "@/lib/api/generated";
 
 interface UpcomingBookingsListProps {
@@ -42,13 +48,17 @@ export function UpcomingBookingsList({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading upcoming bookings...</p>
+          <p className="text-sm text-muted-foreground">
+            Loading upcoming bookings...
+          </p>
         ) : isError ? (
           <p className="text-sm text-destructive">
             Could not load upcoming bookings. Is the mock server running?
           </p>
         ) : bookings.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No upcoming bookings yet.</p>
+          <p className="text-sm text-muted-foreground">
+            No upcoming bookings yet.
+          </p>
         ) : (
           <div className="space-y-4">
             {bookings.map((booking) => (

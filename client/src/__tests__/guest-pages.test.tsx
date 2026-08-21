@@ -48,22 +48,16 @@ after(() => {
   }
 });
 
-const { render, screen, cleanup, waitFor, fireEvent } = await import(
-  "@testing-library/react"
-);
-const { QueryClient, QueryClientProvider } = await import(
-  "@tanstack/react-query"
-);
+const { render, screen, cleanup, waitFor, fireEvent } =
+  await import("@testing-library/react");
+const { QueryClient, QueryClientProvider } =
+  await import("@tanstack/react-query");
 const { createMemoryRouter, RouterProvider } = await import("react-router-dom");
-const { GuestLandingPage } = await import(
-  "../pages/guest/GuestLandingPage.js"
-);
-const { GuestBookingTypePage } = await import(
-  "../pages/guest/GuestBookingTypePage.js"
-);
-const { GuestBookingConfirmationPage } = await import(
-  "../pages/guest/GuestBookingConfirmationPage.js"
-);
+const { GuestLandingPage } = await import("../pages/guest/GuestLandingPage.js");
+const { GuestBookingTypePage } =
+  await import("../pages/guest/GuestBookingTypePage.js");
+const { GuestBookingConfirmationPage } =
+  await import("../pages/guest/GuestBookingConfirmationPage.js");
 
 afterEach(() => {
   cleanup();
@@ -164,7 +158,9 @@ describe("GuestBookingTypePage", () => {
     const availableTimeSlot = {
       id: "available-slot",
       startTime: new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+      endTime: new Date(
+        now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
+      ).toISOString(),
       available: true,
     };
     const timeSlots = {
@@ -173,19 +169,25 @@ describe("GuestBookingTypePage", () => {
         {
           id: "booked-slot",
           startTime: new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(now + 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+          endTime: new Date(
+            now + 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
+          ).toISOString(),
           available: false,
         },
         {
           id: "too-far-slot",
           startTime: new Date(now + 15 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(now + 15 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+          endTime: new Date(
+            now + 15 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
+          ).toISOString(),
           available: true,
         },
         {
           id: "past-slot",
           startTime: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(now - 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString(),
+          endTime: new Date(
+            now - 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
+          ).toISOString(),
           available: true,
         },
       ],
@@ -216,7 +218,9 @@ describe("GuestBookingTypePage", () => {
   it("books a selected time slot and lands on the confirmation page", async () => {
     const now = Date.now();
     const slotStart = new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString();
-    const slotEnd = new Date(now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString();
+    const slotEnd = new Date(
+      now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
+    ).toISOString();
     const requests: Array<{ url: string; method?: string; body?: string }> = [];
 
     globalThis.fetch = async (input, init) => {
@@ -321,10 +325,7 @@ describe("GuestBookingTypePage", () => {
 
 describe("GuestBookingConfirmationPage", () => {
   it("renders placeholder with booking id", () => {
-    renderWithProviders(
-      <GuestBookingConfirmationPage />,
-      "/bookings/xyz-789",
-    );
+    renderWithProviders(<GuestBookingConfirmationPage />, "/bookings/xyz-789");
     assert.ok(screen.getByText("Booking confirmation"));
     assert.ok(screen.getByText("xyz-789"));
   });

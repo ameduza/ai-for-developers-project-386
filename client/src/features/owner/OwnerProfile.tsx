@@ -11,7 +11,9 @@ export function OwnerProfile({ owner, isLoading }: OwnerProfileProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-muted-foreground">Loading profile...</CardTitle>
+          <CardTitle className="text-muted-foreground">
+            Loading profile...
+          </CardTitle>
         </CardHeader>
       </Card>
     );

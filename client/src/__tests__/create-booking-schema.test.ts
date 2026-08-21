@@ -19,25 +19,41 @@ describe("createBooking Schema Validation", () => {
   it("rejects a missing guest name", () => {
     const invalidData = { ...validBooking, guestName: "" };
     const result = createBookingSchema.safeParse(invalidData);
-    assert.equal(result.success, false, "Empty guest name should fail validation");
+    assert.equal(
+      result.success,
+      false,
+      "Empty guest name should fail validation",
+    );
   });
 
   it("rejects a missing guest email", () => {
     const invalidData = { ...validBooking, guestEmail: "" };
     const result = createBookingSchema.safeParse(invalidData);
-    assert.equal(result.success, false, "Empty guest email should fail validation");
+    assert.equal(
+      result.success,
+      false,
+      "Empty guest email should fail validation",
+    );
   });
 
   it("rejects an invalid guest email format", () => {
     const invalidData = { ...validBooking, guestEmail: "not-an-email" };
     const result = createBookingSchema.safeParse(invalidData);
-    assert.equal(result.success, false, "Invalid email format should fail validation");
+    assert.equal(
+      result.success,
+      false,
+      "Invalid email format should fail validation",
+    );
   });
 
   it("rejects a missing booking type id", () => {
     const invalidData = { ...validBooking, eventTypeId: "" };
     const result = createBookingSchema.safeParse(invalidData);
-    assert.equal(result.success, false, "Missing event type id should fail validation");
+    assert.equal(
+      result.success,
+      false,
+      "Missing event type id should fail validation",
+    );
   });
 
   it("rejects missing time slot boundaries", () => {
@@ -45,12 +61,20 @@ describe("createBooking Schema Validation", () => {
       ...validBooking,
       slotStart: "",
     });
-    assert.equal(missingStart.success, false, "Missing slot start should fail validation");
+    assert.equal(
+      missingStart.success,
+      false,
+      "Missing slot start should fail validation",
+    );
 
     const missingEnd = createBookingSchema.safeParse({
       ...validBooking,
       slotEnd: "",
     });
-    assert.equal(missingEnd.success, false, "Missing slot end should fail validation");
+    assert.equal(
+      missingEnd.success,
+      false,
+      "Missing slot end should fail validation",
+    );
   });
 });

@@ -11,12 +11,16 @@ export function BookingTypeCard({ bookingType }: BookingTypeCardProps) {
       <CardContent className="pt-6">
         <div className="space-y-2">
           <div className="flex items-start justify-between">
-            <h4 className="font-semibold text-foreground">{bookingType.title}</h4>
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
+            <h4 className="font-semibold text-foreground">
+              {bookingType.title}
+            </h4>
+            <span className="rounded bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
               {bookingType.durationMinutes} min
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">{bookingType.description}</p>
+          <p className="text-sm text-muted-foreground">
+            {bookingType.description}
+          </p>
         </div>
       </CardContent>
     </Card>

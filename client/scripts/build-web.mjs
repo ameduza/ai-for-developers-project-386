@@ -4,7 +4,13 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const clientRoot = path.resolve(scriptDir, "..");
-const viteBin = path.resolve(clientRoot, "node_modules", "vite", "bin", "vite.js");
+const viteBin = path.resolve(
+  clientRoot,
+  "node_modules",
+  "vite",
+  "bin",
+  "vite.js",
+);
 const env = { ...process.env };
 
 if (!env.VITE_API_BASE_URL) {

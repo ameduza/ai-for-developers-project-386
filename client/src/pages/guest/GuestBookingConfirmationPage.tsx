@@ -1,5 +1,11 @@
 import { useParams, Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export function GuestBookingConfirmationPage() {
@@ -19,7 +25,8 @@ export function GuestBookingConfirmationPage() {
           <span className="font-medium text-foreground">{bookingId}</span>
         </p>
         <p className="text-sm text-muted-foreground">
-          The real API-backed confirmation view will mount here in a future ticket.
+          The real API-backed confirmation view will mount here in a future
+          ticket.
         </p>
         <Button asChild variant="outline">
           <Link to="/guest">Back to guest area</Link>

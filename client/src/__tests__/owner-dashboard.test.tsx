@@ -48,14 +48,13 @@ after(() => {
   }
 });
 
-const { render, screen, cleanup, waitFor } = await import("@testing-library/react");
-const { QueryClient, QueryClientProvider } = await import(
-  "@tanstack/react-query"
-);
+const { render, screen, cleanup, waitFor } =
+  await import("@testing-library/react");
+const { QueryClient, QueryClientProvider } =
+  await import("@tanstack/react-query");
 const { OpenAPI } = await import("../lib/api/generated/index.js");
-const { OwnerDashboardPage } = await import(
-  "../pages/owner/OwnerDashboardPage.js"
-);
+const { OwnerDashboardPage } =
+  await import("../pages/owner/OwnerDashboardPage.js");
 
 const bookingType = {
   id: "consultation",
@@ -116,18 +115,17 @@ function renderOwnerDashboard() {
   OpenAPI.BASE = "http://127.0.0.1:4010";
   globalThis.fetch = async (input) => {
     const url = String(input);
-    const body =
-      url.endsWith("/owner") ?
-        {
+    const body = url.endsWith("/owner")
+      ? {
           id: "owner-1",
           name: "Alex Owner",
           bio: "Booking Service owner",
-        } :
-      url.endsWith("/owner/booking-types") ?
-        { items: [bookingType] } :
-      url.endsWith("/owner/bookings") ?
-        upcomingBookings :
-        {};
+        }
+      : url.endsWith("/owner/booking-types")
+        ? { items: [bookingType] }
+        : url.endsWith("/owner/bookings")
+          ? upcomingBookings
+          : {};
 
     return new Response(JSON.stringify(body), {
       status: 200,

@@ -1,9 +1,18 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { createBookingTypeSchema, type CreateBookingTypeFormData } from "@/features/owner/schemas";
+import {
+  createBookingTypeSchema,
+  type CreateBookingTypeFormData,
+} from "@/features/owner/schemas";
 import { useCreateOwnerBookingTypeMutation } from "@/features/owner/queries";
 
 export function CreateBookingTypeForm() {
@@ -46,7 +55,10 @@ export function CreateBookingTypeForm() {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+              htmlFor="title"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
               Title
             </label>
             <input
@@ -63,7 +75,10 @@ export function CreateBookingTypeForm() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+              htmlFor="description"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
               Description
             </label>
             <textarea
@@ -75,12 +90,17 @@ export function CreateBookingTypeForm() {
               disabled={isSubmitting || mutation.isPending}
             />
             {errors.description && (
-              <p className="text-xs text-destructive">{errors.description.message}</p>
+              <p className="text-xs text-destructive">
+                {errors.description.message}
+              </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="duration" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+            <label
+              htmlFor="duration"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
               Duration (minutes)
             </label>
             <input
@@ -95,18 +115,20 @@ export function CreateBookingTypeForm() {
               disabled={isSubmitting || mutation.isPending}
             />
             {errors.durationMinutes && (
-              <p className="text-xs text-destructive">{errors.durationMinutes.message}</p>
+              <p className="text-xs text-destructive">
+                {errors.durationMinutes.message}
+              </p>
             )}
           </div>
 
           {successMessage && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+            <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">
               {successMessage}
             </div>
           )}
 
           {mutation.isError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+            <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               Failed to create booking type. Please try again.
             </div>
           )}

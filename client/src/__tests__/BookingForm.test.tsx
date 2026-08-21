@@ -48,12 +48,10 @@ after(() => {
   }
 });
 
-const { render, screen, cleanup, waitFor, fireEvent } = await import(
-  "@testing-library/react"
-);
-const { QueryClient, QueryClientProvider } = await import(
-  "@tanstack/react-query"
-);
+const { render, screen, cleanup, waitFor, fireEvent } =
+  await import("@testing-library/react");
+const { QueryClient, QueryClientProvider } =
+  await import("@tanstack/react-query");
 const { createMemoryRouter, RouterProvider } = await import("react-router-dom");
 const { BookingForm } = await import("../features/guest/BookingForm.js");
 
@@ -96,7 +94,9 @@ function renderBookingForm() {
     [
       {
         path: "/guest/booking-types/:bookingTypeId",
-        element: <BookingForm bookingTypeId="consultation" timeSlot={timeSlot} />,
+        element: (
+          <BookingForm bookingTypeId="consultation" timeSlot={timeSlot} />
+        ),
       },
       {
         path: "/bookings/:bookingId",
@@ -183,9 +183,7 @@ describe("BookingForm", () => {
     submitForm();
 
     await waitFor(() => {
-      assert.ok(
-        screen.getByText("guestEmail must be a valid email address"),
-      );
+      assert.ok(screen.getByText("guestEmail must be a valid email address"));
     });
     assert.equal(
       (screen.getByLabelText("Your email") as HTMLInputElement).value,

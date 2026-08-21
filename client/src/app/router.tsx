@@ -13,8 +13,14 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "guest", element: <GuestLandingPage /> },
-      { path: "guest/booking-types/:bookingTypeId", element: <GuestBookingTypePage /> },
-      { path: "bookings/:bookingId", element: <GuestBookingConfirmationPage /> },
+      {
+        path: "guest/booking-types/:bookingTypeId",
+        element: <GuestBookingTypePage />,
+      },
+      {
+        path: "bookings/:bookingId",
+        element: <GuestBookingConfirmationPage />,
+      },
       { path: "owner", element: <OwnerDashboardPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

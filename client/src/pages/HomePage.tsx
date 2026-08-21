@@ -1,7 +1,13 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CalendarRange, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export function HomePage() {
   return (
@@ -17,8 +23,8 @@ export function HomePage() {
               Booking Service
             </h1>
             <p className="max-w-2xl text-lg text-muted-foreground">
-              A Vite SPA scaffold for the Guest and Owner flows, wired for TanStack Query,
-              shadcn/ui, and the TypeSpec API contract.
+              A Vite SPA scaffold for the Guest and Owner flows, wired for
+              TanStack Query, shadcn/ui, and the TypeSpec API contract.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -38,7 +44,9 @@ export function HomePage() {
         <Card>
           <CardHeader>
             <CardTitle>Foundation in place</CardTitle>
-            <CardDescription>Ready for the later booking screens.</CardDescription>
+            <CardDescription>
+              Ready for the later booking screens.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-3">

@@ -11,6 +11,10 @@
     "generate:api": "npm run build:contract && node scripts/generate-api.mjs",
     "build": "npm run generate:api && node scripts/build-web.mjs",
     "preview": "vite preview",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "tsx --test src/__tests__/*.test.ts src/__tests__/*.test.tsx"
   },

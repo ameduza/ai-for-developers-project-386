@@ -8,5 +8,10 @@
     "strict": true,
     "noEmit": true
   },
-  "include": ["vite.config.ts", "tailwind.config.ts", "postcss.config.cjs", "scripts/**/*.mjs"]
+  "include": [
+    "vite.config.ts",
+    "tailwind.config.ts",
+    "postcss.config.cjs",
+    "scripts/**/*.mjs"
+  ]
 }

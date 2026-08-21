@@ -10,14 +10,20 @@ const { listGuestTimeSlots } = await import("../lib/api/client.js");
 describe("generated API client exports", () => {
   it("exports DefaultService with expected methods", () => {
     assert.ok(DefaultService);
-    assert.equal(typeof DefaultService.bookingTypesListBookingTypes, "function");
+    assert.equal(
+      typeof DefaultService.bookingTypesListBookingTypes,
+      "function",
+    );
     assert.equal(typeof DefaultService.bookingTypesListSlots, "function");
     assert.equal(typeof DefaultService.bookingsCreate, "function");
     assert.equal(typeof DefaultService.bookingsGet, "function");
     assert.equal(typeof DefaultService.bookingsDelete, "function");
     assert.equal(typeof DefaultService.ownerRoutesGetOwner, "function");
     assert.equal(typeof DefaultService.ownerRoutesListBookingTypes, "function");
-    assert.equal(typeof DefaultService.ownerRoutesCreateBookingType, "function");
+    assert.equal(
+      typeof DefaultService.ownerRoutesCreateBookingType,
+      "function",
+    );
     assert.equal(
       typeof DefaultService.ownerRoutesListUpcomingBookings,
       "function",
@@ -52,7 +58,10 @@ describe("generated API client exports", () => {
     try {
       const result = await listGuestTimeSlots("consultation");
 
-      assert.equal(requestedUrl, "http://127.0.0.1:4010/booking-types/consultation/slots");
+      assert.equal(
+        requestedUrl,
+        "http://127.0.0.1:4010/booking-types/consultation/slots",
+      );
       assert.equal(result.items[0]?.id, "slot-1");
     } finally {
       globalThis.fetch = originalFetch;

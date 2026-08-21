@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { TimeSlot } from "@/lib/api/generated";
 import { useGuestTimeSlotsQuery } from "@/features/guest/queries";
@@ -25,13 +31,16 @@ export function GuestBookingTypePage() {
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const now = Date.now();
   const availableTimeSlots = (timeSlotsQuery.data?.items ?? [])
-    .filter((timeSlot) => timeSlot.available && isWithinBookingWindow(timeSlot, now))
+    .filter(
+      (timeSlot) => timeSlot.available && isWithinBookingWindow(timeSlot, now),
+    )
     .sort((first, second) => first.startTime.localeCompare(second.startTime));
   const selectedTimeSlot =
-    availableTimeSlots.find((timeSlot) => timeSlot.id === selectedSlotId) ?? null;
+    availableTimeSlots.find((timeSlot) => timeSlot.id === selectedSlotId) ??
+    null;
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="max-w-3xl space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Available time slots</CardTitle>
@@ -41,7 +50,9 @@ export function GuestBookingTypePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {timeSlotsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading available time slots...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading available time slots...
+            </p>
           ) : timeSlotsQuery.isError ? (
             <p className="text-sm text-destructive">
               Could not load available time slots. Is the mock server running?
@@ -54,7 +65,7 @@ export function GuestBookingTypePage() {
             <ol aria-label="Available time slots" className="space-y-3">
               {availableTimeSlots.map((timeSlot) => (
                 <li key={timeSlot.id} className="rounded-lg border p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-3">
                     <input
                       type="radio"
                       name="time-slot"

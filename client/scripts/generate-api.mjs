@@ -8,7 +8,12 @@ const clientRoot = path.resolve(scriptDir, "..");
 const repoRoot = path.resolve(clientRoot, "..");
 const typespecRoot = path.resolve(repoRoot, "typespec");
 const outputDir = path.resolve(clientRoot, "src", "lib", "api", "generated");
-const specPath = path.resolve(typespecRoot, "tsp-output", "schema", "openapi.yaml");
+const specPath = path.resolve(
+  typespecRoot,
+  "tsp-output",
+  "schema",
+  "openapi.yaml",
+);
 
 rmSync(outputDir, { recursive: true, force: true });
 

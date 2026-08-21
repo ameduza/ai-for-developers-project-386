@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { OwnerProfile } from "@/features/owner/OwnerProfile";
 import { BookingTypeCard } from "@/features/owner/BookingTypeCard";
 import { CreateBookingTypeForm } from "@/features/owner/CreateBookingTypeForm";
@@ -35,7 +41,9 @@ export function OwnerDashboardPage() {
           </CardHeader>
           <CardContent>
             {bookingTypesQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading booking types...</p>
+              <p className="text-sm text-muted-foreground">
+                Loading booking types...
+              </p>
             ) : bookingTypesQuery.isError ? (
               <p className="text-sm text-destructive">
                 Could not load booking types. Is the mock server running?

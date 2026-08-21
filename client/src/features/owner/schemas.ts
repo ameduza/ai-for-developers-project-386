@@ -18,6 +18,4 @@ export const createBookingTypeSchema = z.object({
     .max(480, "Duration must be at most 480 minutes (8 hours)"),
 });
 
-export type CreateBookingTypeFormData = z.infer<
-  typeof createBookingTypeSchema
->;
+export type CreateBookingTypeFormData = z.infer<typeof createBookingTypeSchema>;

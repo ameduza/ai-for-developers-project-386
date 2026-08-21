@@ -32,7 +32,11 @@ describe("CreateBookingType Schema Validation", () => {
     };
 
     const result = createBookingTypeSchema.safeParse(invalidData);
-    assert.equal(result.success, false, "Title shorter than 3 chars should fail");
+    assert.equal(
+      result.success,
+      false,
+      "Title shorter than 3 chars should fail",
+    );
   });
 
   it("rejects description shorter than 10 characters", () => {
