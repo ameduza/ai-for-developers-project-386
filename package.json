@@ -10,13 +10,28 @@
   "author": "ameduza",
   "type": "module",
   "workspaces": [
-    "client",
-    "server"
+    "typespec",
+    "client"
   ],
   "engines": {
     "node": ">=22.5.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:contract": "npm run build:contract --workspace typespec",
+    "test": "npm run test --workspace client",
+    "typecheck": "npm run typecheck --workspace client",
+    "lint": "npm run lint --workspace client",
+    "format:check": "npm run format:check --workspace client",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "client/**/*.{ts,tsx}": [
+      "npm run lint:staged --workspace client --",
+      "npm run format:staged --workspace client --"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0"
   }
 }
