@@ -22,4 +22,23 @@ export class ApiError extends Error {
         this.body = response.body;
         this.request = request;
     }
+
+    extractErrorMessage(): string {
+        const body = this.body;
+
+        if (typeof body === "string" && body.trim()) {
+            return body;
+        }
+
+        if (
+            body &&
+            typeof body === "object" &&
+            typeof (body as { message?: unknown }).message === "string" &&
+            (body as { message: string }).message.trim()
+        ) {
+            return (body as { message: string }).message;
+        }
+
+        return "Could not create the booking. Please try again.";
+    }
 }

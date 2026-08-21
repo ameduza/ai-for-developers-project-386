@@ -18,25 +18,6 @@ import {
 import { useCreateBookingMutation } from "@/features/guest/queries";
 import { formatTimeSlot } from "@/features/guest/format-time-slot";
 
-function extractErrorMessage(error: ApiError): string {
-  const body = error.body;
-
-  if (typeof body === "string" && body.trim()) {
-    return body;
-  }
-
-  if (
-    body &&
-    typeof body === "object" &&
-    typeof (body as { message?: unknown }).message === "string" &&
-    (body as { message: string }).message.trim()
-  ) {
-    return (body as { message: string }).message;
-  }
-
-  return "Could not create the booking. Please try again.";
-}
-
 type BookingFormProps = {
   bookingTypeId: string;
   timeSlot: TimeSlot;
@@ -54,9 +35,9 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
   } = useForm<CreateBookingFormData>({
     resolver: zodResolver(createBookingSchema),
     defaultValues: {
-      eventTypeId: bookingTypeId,
-      slotStart: timeSlot.startTime,
-      slotEnd: timeSlot.endTime,
+      bookingTypeId: bookingTypeId,
+      timeSlotStart: timeSlot.startTime,
+      timeSlotEnd: timeSlot.endTime,
       guestName: "",
       guestEmail: "",
     },
@@ -85,7 +66,7 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
       }
 
       if (error.status === 400) {
-        const message = extractErrorMessage(error);
+        const message = error.extractErrorMessage();
         let mappedToField = false;
 
         if (/email/i.test(message)) {
@@ -107,7 +88,7 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
 
       setError("root.serverError", {
         type: "server",
-        message: extractErrorMessage(error),
+        message: error.extractErrorMessage(),
       });
     }
   };

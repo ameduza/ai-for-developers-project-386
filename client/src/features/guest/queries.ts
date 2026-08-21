@@ -6,17 +6,18 @@ import {
   listGuestBookingTypes,
   listGuestTimeSlots,
 } from "@/lib/api/client";
+import { QUERY_KEYS } from "@/lib/constants";
 
 export function useGuestBookingTypesQuery() {
   return useQuery({
-    queryKey: ["guest-booking-types"],
+    queryKey: QUERY_KEYS.GUEST_BOOKING_TYPES,
     queryFn: listGuestBookingTypes,
   });
 }
 
 export function useGuestTimeSlotsQuery(bookingTypeId: string | undefined) {
   return useQuery({
-    queryKey: ["guest-time-slots", bookingTypeId],
+    queryKey: [...QUERY_KEYS.GUEST_TIME_SLOTS, bookingTypeId],
     queryFn: () => {
       if (!bookingTypeId) {
         throw new Error("A booking type id is required to load time slots");
@@ -35,7 +36,7 @@ export function useCreateBookingMutation() {
     mutationFn: createBooking,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["guest-time-slots"],
+        queryKey: QUERY_KEYS.GUEST_TIME_SLOTS,
       });
     },
   });
@@ -43,7 +44,7 @@ export function useCreateBookingMutation() {
 
 export function useBookingQuery(bookingId: string | undefined) {
   return useQuery({
-    queryKey: ["guest-booking", bookingId],
+    queryKey: [...QUERY_KEYS.GUEST_BOOKING, bookingId],
     queryFn: () => {
       if (!bookingId) {
         throw new Error("A booking id is required to load a booking");
@@ -61,8 +62,8 @@ export function useCancelBookingMutation() {
   return useMutation({
     mutationFn: cancelBooking,
     onSuccess: (_data, bookingId) => {
-      queryClient.invalidateQueries({ queryKey: ["guest-booking", bookingId] });
-      queryClient.invalidateQueries({ queryKey: ["guest-time-slots"] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.GUEST_BOOKING, bookingId] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GUEST_TIME_SLOTS });
     },
   });
 }
