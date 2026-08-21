@@ -20,6 +20,14 @@ export function createBooking(booking: CreateBooking) {
   return DefaultService.bookingsCreate({ requestBody: booking });
 }
 
+export function getBooking(id: string) {
+  return DefaultService.bookingsGet({ id });
+}
+
+export function cancelBooking(id: string) {
+  return DefaultService.bookingsDelete({ id });
+}
+
 // Owner routes
 export function getOwnerProfile() {
   return DefaultService.ownerRoutesGetOwner();

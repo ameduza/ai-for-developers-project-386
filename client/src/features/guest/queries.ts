@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  cancelBooking,
   createBooking,
+  getBooking,
   listGuestBookingTypes,
   listGuestTimeSlots,
 } from "@/lib/api/client";
@@ -35,6 +37,32 @@ export function useCreateBookingMutation() {
       queryClient.invalidateQueries({
         queryKey: ["guest-time-slots"],
       });
+    },
+  });
+}
+
+export function useBookingQuery(bookingId: string | undefined) {
+  return useQuery({
+    queryKey: ["guest-booking", bookingId],
+    queryFn: () => {
+      if (!bookingId) {
+        throw new Error("A booking id is required to load a booking");
+      }
+
+      return getBooking(bookingId);
+    },
+    enabled: Boolean(bookingId),
+  });
+}
+
+export function useCancelBookingMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: cancelBooking,
+    onSuccess: (_data, bookingId) => {
+      queryClient.invalidateQueries({ queryKey: ["guest-booking", bookingId] });
+      queryClient.invalidateQueries({ queryKey: ["guest-time-slots"] });
     },
   });
 }

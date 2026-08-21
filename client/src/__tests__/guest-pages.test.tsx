@@ -324,9 +324,117 @@ describe("GuestBookingTypePage", () => {
 });
 
 describe("GuestBookingConfirmationPage", () => {
-  it("renders placeholder with booking id", () => {
-    renderWithProviders(<GuestBookingConfirmationPage />, "/bookings/xyz-789");
-    assert.ok(screen.getByText("Booking confirmation"));
-    assert.ok(screen.getByText("xyz-789"));
+  const bookingFixture = {
+    id: "bk-1",
+    bookingType: {
+      id: "consultation",
+      title: "Product strategy",
+      description: "Discuss the next product milestone.",
+      durationMinutes: 30,
+    },
+    timeSlot: {
+      id: "slot-1",
+      startTime: "2026-09-01T10:00:00Z",
+      endTime: "2026-09-01T10:30:00Z",
+      available: false,
+    },
+    guest: { name: "Ada Lovelace", email: "ada@example.com" },
+  };
+
+  it("shows the booking type and time slot details without login", async () => {
+    const requests: Array<{ url: string; method?: string }> = [];
+
+    globalThis.fetch = async (input, init) => {
+      requests.push({ url: String(input), method: init?.method });
+
+      return new Response(JSON.stringify(bookingFixture), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    renderWithProviders(<GuestBookingConfirmationPage />, "/bookings/bk-1");
+
+    await waitFor(() => {
+      assert.ok(screen.getByText("Product strategy"));
+    });
+    assert.ok(screen.getByText(/Discuss the next product milestone\./));
+    assert.ok(screen.getByText(/September 1, 2026/));
+    assert.ok(screen.getByText(/Ada Lovelace/));
+    assert.ok(screen.getByText(/ada@example\.com/));
+
+    const get = requests.find((request) => request.method === "GET");
+    assert.ok(get, "Expected a GET request for the booking");
+    assert.ok(get.url.endsWith("/bookings/bk-1"));
+  });
+
+  it("shows a dedicated not found state for an unknown booking id", async () => {
+    globalThis.fetch = async () =>
+      new Response("The server cannot find the requested resource.", {
+        status: 404,
+        headers: { "Content-Type": "text/plain" },
+      });
+
+    renderWithProviders(<GuestBookingConfirmationPage />, "/bookings/missing");
+
+    await waitFor(() => {
+      assert.ok(screen.getByText("Booking not found"));
+    });
+    assert.ok(screen.getByText(/does not exist or may have been cancelled/));
+  });
+
+  it("cancels the booking from the confirmation view", async () => {
+    const requests: Array<{ url: string; method?: string }> = [];
+    let cancelled = false;
+
+    globalThis.fetch = async (input, init) => {
+      requests.push({ url: String(input), method: init?.method });
+
+      if (init?.method === "DELETE") {
+        cancelled = true;
+
+        return new Response(null, { status: 204 });
+      }
+
+      if (cancelled) {
+        return new Response("The server cannot find the requested resource.", {
+          status: 404,
+          headers: { "Content-Type": "text/plain" },
+        });
+      }
+
+      return new Response(JSON.stringify(bookingFixture), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    renderWithProviders(<GuestBookingConfirmationPage />, "/bookings/bk-1");
+
+    await waitFor(() => {
+      assert.ok(screen.getByRole("button", { name: "Cancel booking" }));
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel booking" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, cancel it" }));
+
+    await waitFor(() => {
+      assert.ok(screen.getByText("Booking cancelled"));
+    });
+    assert.ok(screen.getByText(/This booking has been cancelled/));
+
+    const refetchCount = () =>
+      requests.filter((request) => request.method === "GET").length;
+    await waitFor(() => {
+      assert.ok(refetchCount() >= 2, "Expected the booking query to refetch");
+    });
+    assert.ok(
+      screen.getByText("Booking cancelled"),
+      "Cancelled confirmation must survive the post-cancel 404 refetch",
+    );
+
+    const del = requests.find((request) => request.method === "DELETE");
+    assert.ok(del, "Expected a DELETE request for the booking");
+    assert.ok(del.url.endsWith("/bookings/bk-1"));
   });
 });
