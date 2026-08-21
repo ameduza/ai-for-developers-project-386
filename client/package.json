@@ -13,8 +13,10 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "lint:staged": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "format:staged": "prettier --write",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "test": "tsx --test src/__tests__/*.test.ts src/__tests__/*.test.tsx"
   },
