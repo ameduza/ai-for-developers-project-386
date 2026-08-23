@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createBookingSchema } from "@/features/guest/schemas";
 
 const validBooking = {
-  eventTypeId: "consultation",
+  bookingTypeId: "consultation",
   slotStart: "2026-10-15T10:00:00Z",
   slotEnd: "2026-10-15T10:30:00Z",
   guestName: "Ada Lovelace",
@@ -47,7 +47,7 @@ describe("createBooking Schema Validation", () => {
   });
 
   it("rejects a missing booking type id", () => {
-    const invalidData = { ...validBooking, eventTypeId: "" };
+    const invalidData = { ...validBooking, bookingTypeId: "" };
     const result = createBookingSchema.safeParse(invalidData);
     assert.equal(
       result.success,
