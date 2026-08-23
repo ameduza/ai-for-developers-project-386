@@ -174,7 +174,20 @@ export function createApp({
   });
 
   app.get("/owner/bookings", (_request, response) => {
-    response.json({ items: repository.listBookings() });
+    const currentTime = now().getTime();
+    const upcomingBookings = repository
+      .listBookings()
+      .filter(
+        (booking) =>
+          new Date(booking.timeSlot.startTime).getTime() > currentTime,
+      )
+      .sort(
+        (first, second) =>
+          new Date(first.timeSlot.startTime).getTime() -
+          new Date(second.timeSlot.startTime).getTime(),
+      );
+
+    response.json({ items: upcomingBookings });
   });
 
   app.post("/bookings", (request: Request, response) => {

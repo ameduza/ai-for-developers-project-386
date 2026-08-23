@@ -155,6 +155,8 @@ describe("OwnerDashboardPage", () => {
 
     assert.ok(screen.getByText("Upcoming Bookings"));
     assert.ok(screen.getByText("Engineering pairing"));
+    assert.ok(screen.getByText("Grace Hopper"));
+    assert.ok(screen.getByText("grace@example.com"));
     assert.ok(screen.getByText("October 15, 2026 · 10:00 AM–10:30 AM UTC"));
     assert.ok(screen.getByText("October 16, 2026 · 2:00 PM–2:30 PM UTC"));
   });

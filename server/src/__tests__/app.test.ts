@@ -3,6 +3,7 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import test from "node:test";
 import { createApp } from "../app.js";
+import { InMemoryRepository } from "../repository.js";
 
 test("createApp serves requests through a real ephemeral server", async () => {
   const server = createApp({
@@ -424,6 +425,95 @@ test("returns booking not found for unknown and already-cancelled bookings", asy
     );
     assert.equal(secondDeleteResponse.status, 404);
     assert.deepEqual(await secondDeleteResponse.json(), notFound);
+  } finally {
+    server.close();
+  }
+});
+
+test("lists only upcoming bookings in start-time order with guest contact details", async () => {
+  const repository = new InMemoryRepository();
+  repository.createBooking({
+    bookingType: repository.getBookingType("booking-type-1")!,
+    timeSlot: {
+      id: "past-slot",
+      startTime: "2026-01-01T07:00:00.000Z",
+      endTime: "2026-01-01T07:30:00.000Z",
+      available: false,
+    },
+    guest: { name: "Past Guest", email: "past@example.com" },
+  });
+  repository.createBooking({
+    bookingType: repository.getBookingType("booking-type-2")!,
+    timeSlot: {
+      id: "late-slot",
+      startTime: "2026-01-01T11:00:00.000Z",
+      endTime: "2026-01-01T12:00:00.000Z",
+      available: false,
+    },
+    guest: { name: "Grace Hopper", email: "grace@example.com" },
+  });
+  repository.createBooking({
+    bookingType: repository.getBookingType("booking-type-1")!,
+    timeSlot: {
+      id: "early-slot",
+      startTime: "2026-01-01T09:00:00.000Z",
+      endTime: "2026-01-01T09:30:00.000Z",
+      available: false,
+    },
+    guest: { name: "Ada Lovelace", email: "ada@example.com" },
+  });
+
+  const server = createApp({
+    now: () => new Date("2026-01-01T08:00:00.000Z"),
+    seed: 1,
+    repository,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${port}/owner/bookings`);
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      items: [
+        {
+          id: "booking-3",
+          bookingType: repository.getBookingType("booking-type-1"),
+          timeSlot: {
+            id: "early-slot",
+            startTime: "2026-01-01T09:00:00.000Z",
+            endTime: "2026-01-01T09:30:00.000Z",
+            available: false,
+          },
+          guest: { name: "Ada Lovelace", email: "ada@example.com" },
+        },
+        {
+          id: "booking-2",
+          bookingType: repository.getBookingType("booking-type-2"),
+          timeSlot: {
+            id: "late-slot",
+            startTime: "2026-01-01T11:00:00.000Z",
+            endTime: "2026-01-01T12:00:00.000Z",
+            available: false,
+          },
+          guest: { name: "Grace Hopper", email: "grace@example.com" },
+        },
+      ],
+    });
+
+    assert.equal(
+      await fetch(`http://127.0.0.1:${port}/bookings/booking-2`, {
+        method: "DELETE",
+      }).then((deleteResponse) => deleteResponse.status),
+      204,
+    );
+    assert.deepEqual(
+      (
+        await (await fetch(`http://127.0.0.1:${port}/owner/bookings`)).json()
+      ).items.map((booking: { id: string }) => booking.id),
+      ["booking-3"],
+    );
   } finally {
     server.close();
   }

@@ -56,6 +56,15 @@ export function UpcomingBookingsList({
                 >
                   {formatTimeSlot(booking.timeSlot)}
                 </time>
+                <p className="mt-3 text-sm text-foreground">
+                  {booking.guest.name}
+                </p>
+                <a
+                  className="text-sm text-muted-foreground underline"
+                  href={`mailto:${booking.guest.email}`}
+                >
+                  {booking.guest.email}
+                </a>
               </div>
             ))}
           </div>
