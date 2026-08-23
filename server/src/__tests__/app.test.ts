@@ -322,3 +322,109 @@ test("allows abutting bookings but rejects overlapping bookings across types", a
     server.close();
   }
 });
+
+test("fetches and cancels a booking, freeing its time slot", async () => {
+  const server = createApp({
+    now: () => new Date("2026-01-01T08:00:00.000Z"),
+    seed: 1,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const createResponse = await fetch(`${baseUrl}/bookings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bookingTypeId: "booking-type-1",
+        timeSlotStart: "2026-01-01T10:00:00.000Z",
+        timeSlotEnd: "2026-01-01T10:30:00.000Z",
+        guestName: "Sam Guest",
+        guestEmail: "sam@example.com",
+      }),
+    });
+    const created = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+
+    const getResponse = await fetch(`${baseUrl}/bookings/${created.id}`);
+    assert.equal(getResponse.status, 200);
+    assert.deepEqual(await getResponse.json(), created);
+
+    const deleteResponse = await fetch(`${baseUrl}/bookings/${created.id}`, {
+      method: "DELETE",
+    });
+    assert.equal(deleteResponse.status, 204);
+    assert.equal(await deleteResponse.text(), "");
+
+    const slotsResponse = await fetch(
+      `${baseUrl}/booking-types/booking-type-1/slots`,
+    );
+    const slots = await slotsResponse.json();
+    assert.equal(
+      slots.items.find(
+        (slot: { startTime: string }) =>
+          slot.startTime === "2026-01-01T10:00:00.000Z",
+      ).available,
+      true,
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test("returns booking not found for unknown and already-cancelled bookings", async () => {
+  const server = createApp({
+    now: () => new Date("2026-01-01T08:00:00.000Z"),
+    seed: 1,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const notFound = {
+      code: "BOOKING_NOT_FOUND",
+      message: "Booking not found",
+    };
+
+    const unknownGetResponse = await fetch(`${baseUrl}/bookings/missing`);
+    assert.equal(unknownGetResponse.status, 404);
+    assert.deepEqual(await unknownGetResponse.json(), notFound);
+
+    const unknownDeleteResponse = await fetch(`${baseUrl}/bookings/missing`, {
+      method: "DELETE",
+    });
+    assert.equal(unknownDeleteResponse.status, 404);
+    assert.deepEqual(await unknownDeleteResponse.json(), notFound);
+
+    const createResponse = await fetch(`${baseUrl}/bookings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bookingTypeId: "booking-type-1",
+        timeSlotStart: "2026-01-01T10:00:00.000Z",
+        timeSlotEnd: "2026-01-01T10:30:00.000Z",
+        guestName: "Sam Guest",
+        guestEmail: "sam@example.com",
+      }),
+    });
+    const created = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+
+    const firstDeleteResponse = await fetch(
+      `${baseUrl}/bookings/${created.id}`,
+      { method: "DELETE" },
+    );
+    assert.equal(firstDeleteResponse.status, 204);
+
+    const secondDeleteResponse = await fetch(
+      `${baseUrl}/bookings/${created.id}`,
+      { method: "DELETE" },
+    );
+    assert.equal(secondDeleteResponse.status, 404);
+    assert.deepEqual(await secondDeleteResponse.json(), notFound);
+  } finally {
+    server.close();
+  }
+});

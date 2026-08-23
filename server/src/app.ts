@@ -242,6 +242,42 @@ export function createApp({
     );
   });
 
+  app.get("/bookings/:id", (request: Request, response) => {
+    const bookingId = request.params.id;
+    const booking =
+      typeof bookingId === "string"
+        ? repository.getBooking(bookingId)
+        : undefined;
+
+    if (!booking) {
+      response.status(404).json({
+        code: "BOOKING_NOT_FOUND",
+        message: "Booking not found",
+      });
+      return;
+    }
+
+    response.json(booking);
+  });
+
+  app.delete("/bookings/:id", (request: Request, response) => {
+    const bookingId = request.params.id;
+    const deleted =
+      typeof bookingId === "string"
+        ? repository.deleteBooking(bookingId)
+        : false;
+
+    if (!deleted) {
+      response.status(404).json({
+        code: "BOOKING_NOT_FOUND",
+        message: "Booking not found",
+      });
+      return;
+    }
+
+    response.status(204).send();
+  });
+
   const jsonErrorHandler: ErrorRequestHandler = (
     error,
     _request,
