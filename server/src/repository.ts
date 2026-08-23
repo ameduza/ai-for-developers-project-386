@@ -39,6 +39,7 @@ export interface CreateBookingTypeInput {
 export interface Repository {
   getOwner(): Owner;
   listBookingTypes(): BookingType[];
+  getBookingType(id: string): BookingType | undefined;
   createBookingType(input: CreateBookingTypeInput): BookingType;
   listBookings(): Booking[];
   getBooking(id: string): Booking | undefined;
@@ -84,6 +85,10 @@ export class InMemoryRepository implements Repository {
 
   listBookingTypes(): BookingType[] {
     return [...this.bookingTypes];
+  }
+
+  getBookingType(id: string): BookingType | undefined {
+    return this.bookingTypes.find((bookingType) => bookingType.id === id);
   }
 
   createBookingType(input: CreateBookingTypeInput): BookingType {

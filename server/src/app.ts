@@ -9,6 +9,7 @@ import {
   type CreateBookingTypeInput,
   type Repository,
 } from "./repository.js";
+import { listTimeSlots } from "./availability.js";
 
 export interface CreateAppOptions {
   now: () => Date;
@@ -45,7 +46,6 @@ export function createApp({
   seed,
   repository = new InMemoryRepository(),
 }: CreateAppOptions): Express {
-  void now;
   void seed;
 
   const app = express();
@@ -58,6 +58,24 @@ export function createApp({
 
   app.get("/booking-types", (_request, response) => {
     response.json({ items: repository.listBookingTypes() });
+  });
+
+  app.get("/booking-types/:id/slots", (request: Request, response) => {
+    const bookingTypeId = request.params.id;
+    const bookingType =
+      typeof bookingTypeId === "string"
+        ? repository.getBookingType(bookingTypeId)
+        : undefined;
+
+    if (!bookingType) {
+      response.status(404).json({
+        code: "BOOKING_TYPE_NOT_FOUND",
+        message: "Booking type not found",
+      });
+      return;
+    }
+
+    response.json({ items: listTimeSlots(bookingType, now()) });
   });
 
   app.get("/owner/booking-types", (_request, response) => {

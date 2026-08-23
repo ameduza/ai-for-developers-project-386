@@ -59,6 +59,64 @@ test("lists the seeded owner and booking types", async () => {
   );
 });
 
+test("lists a deterministic weekday time-slot grid for a booking type", async () => {
+  const server = createApp({
+    now: () => new Date("2026-01-01T00:00:00.000Z"),
+    seed: 1,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const firstResponse = await fetch(
+      `http://127.0.0.1:${port}/booking-types/booking-type-1/slots`,
+    );
+    const secondResponse = await fetch(
+      `http://127.0.0.1:${port}/booking-types/booking-type-1/slots`,
+    );
+    const first = await firstResponse.json();
+    const second = await secondResponse.json();
+
+    assert.equal(firstResponse.status, 200);
+    assert.equal(first.items.length, 160);
+    assert.deepEqual(first.items, second.items);
+    assert.deepEqual(first.items[0], {
+      id: "slot-8ff1f83fad3326360a893ac9",
+      startTime: "2026-01-01T09:00:00.000Z",
+      endTime: "2026-01-01T09:30:00.000Z",
+      available: true,
+    });
+    assert.equal(first.items.at(-1).startTime, "2026-01-14T16:30:00.000Z");
+    assert.ok(
+      first.items.every(
+        (slot: { startTime: string; endTime: string; available: boolean }) => {
+          const start = new Date(slot.startTime);
+          const end = new Date(slot.endTime);
+          return (
+            start.getUTCDay() >= 1 &&
+            start.getUTCDay() <= 5 &&
+            start.getUTCHours() >= 9 &&
+            end.getUTCHours() <= 17 &&
+            end.getTime() - start.getTime() === 30 * 60 * 1000 &&
+            slot.available
+          );
+        },
+      ),
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test("returns a clear not-found error for unknown booking types", async () => {
+  const response = await requestApp("/booking-types/missing/slots");
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    code: "BOOKING_TYPE_NOT_FOUND",
+    message: "Booking type not found",
+  });
+});
+
 test("creates a booking type and returns it in the guest list", async () => {
   const server = createApp({ now: () => new Date(), seed: 1 }).listen(0);
   try {
