@@ -242,10 +242,12 @@ test("enforces booking validation order and does not persist rejected requests",
       guestEmail: "sam@example.com",
     };
 
-    assert.equal(
-      (await requestBooking({ ...valid, guestEmail: "invalid" })).status,
-      400,
-    );
+    const invalidEmailResponse = await requestBooking({
+      ...valid,
+      guestEmail: "a@.b.c",
+    });
+    assert.equal(invalidEmailResponse.status, 400);
+    assert.equal((await invalidEmailResponse.json()).code, "VALIDATION_FAILED");
     assert.equal(
       (await requestBooking({ ...valid, bookingTypeId: "missing" })).status,
       404,

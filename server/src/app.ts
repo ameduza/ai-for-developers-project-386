@@ -62,9 +62,31 @@ function isCreateBookingInput(body: unknown): body is CreateBookingInput {
     typeof input.guestName !== "string" ||
     typeof input.guestEmail !== "string" ||
     input.guestName.trim().length === 0 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.guestEmail)
+    !isValidEmail(input.guestEmail)
   ) {
     return false;
+  }
+
+  function isValidEmail(email: string): boolean {
+    const [localPart, domain] = email.split("@");
+    if (
+      !localPart ||
+      !domain ||
+      email.split("@").length !== 2 ||
+      localPart.startsWith(".") ||
+      localPart.endsWith(".") ||
+      localPart.includes("..")
+    ) {
+      return false;
+    }
+
+    const labels = domain.split(".");
+    return (
+      labels.length >= 2 &&
+      labels.every((label) =>
+        /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label),
+      )
+    );
   }
 
   const start = new Date(input.timeSlotStart);
