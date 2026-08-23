@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CreateBooking = {
-  eventTypeId: string;
-  slotStart: string;
-  slotEnd: string;
+  bookingTypeId: string;
+  timeSlotStart: string;
+  timeSlotEnd: string;
   guestName: string;
   guestEmail: string;
 };
