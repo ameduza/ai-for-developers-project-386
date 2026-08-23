@@ -1,6 +1,6 @@
 # Time Slots are derived, not stored
 
-`CONTEXT.md` describes the Owner as publishing availability, but the API Contract has no endpoint for creating a Time Slot — only `GET /booking-types/{id}/slots` for reading them. We decided the server **generates** Time Slots on demand from a fixed availability rule (Mon–Fri, 09:00–17:00 UTC, stepped by the Booking Type's `durationMinutes`, from now through now + 14 days) rather than storing them, so Bookings are the only persisted entity and a slot's `available` flag is computed by intersecting the grid with existing Bookings.
+`CONTEXT.md` describes the Owner as publishing availability, but the API Contract has no endpoint for creating a Time Slot — only `GET /booking-types/{id}/slots` for reading them. We decided the server **generates** Time Slots on demand from a fixed availability rule (Mon–Fri, 09:00–17:00 UTC, stepped by the Booking Type's `durationMinutes`, from the next whole step after now through now + 14 days) rather than storing them, so Bookings are the only persisted entity and a slot's `available` flag is computed by intersecting the grid with existing Bookings.
 
 ## Consequences
 
