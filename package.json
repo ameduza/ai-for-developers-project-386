@@ -11,23 +11,28 @@
   "type": "module",
   "workspaces": [
     "typespec",
-    "client"
+    "client",
+    "server"
   ],
   "engines": {
     "node": ">=22.5.0"
   },
   "scripts": {
     "build:contract": "npm run build:contract --workspace typespec",
-    "test": "npm run test --workspace client",
-    "typecheck": "npm run typecheck --workspace client",
-    "lint": "npm run lint --workspace client",
-    "format:check": "npm run format:check --workspace client",
+    "test": "npm run test --workspace client && npm run test --workspace server",
+    "typecheck": "npm run typecheck --workspace client && npm run typecheck --workspace server",
+    "lint": "npm run lint --workspace client && npm run lint --workspace server",
+    "format:check": "npm run format:check --workspace client && npm run format:check --workspace server",
     "prepare": "husky"
   },
   "lint-staged": {
     "client/**/*.{ts,tsx}": [
       "npm run lint:staged --workspace client --",
       "npm run format:staged --workspace client --"
+    ],
+    "server/**/*.ts": [
+      "npm run lint:staged --workspace server --",
+      "npm run format:staged --workspace server --"
     ]
   },
   "devDependencies": {

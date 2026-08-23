@@ -46,7 +46,13 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
 
   const onSubmit = async (data: CreateBookingFormData) => {
     try {
-      const booking = await mutation.mutateAsync(data);
+      const booking = await mutation.mutateAsync({
+        bookingTypeId: data.eventTypeId,
+        timeSlotStart: data.slotStart,
+        timeSlotEnd: data.slotEnd,
+        guestName: data.guestName,
+        guestEmail: data.guestEmail,
+      });
       navigate(`/bookings/${booking.id}`);
     } catch (error) {
       if (!(error instanceof ApiError)) {
