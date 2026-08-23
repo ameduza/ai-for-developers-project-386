@@ -10,7 +10,11 @@ function slotId(bookingTypeId: string, startTime: Date): string {
   return `slot-${createHash("sha256").update(slotKey).digest("hex").slice(0, 24)}`;
 }
 
-export function listTimeSlots(bookingType: BookingType, now: Date): TimeSlot[] {
+export function listTimeSlots(
+  bookingType: BookingType,
+  now: Date,
+  includePast = false,
+): TimeSlot[] {
   const firstDay = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   );
@@ -46,7 +50,10 @@ export function listTimeSlots(bookingType: BookingType, now: Date): TimeSlot[] {
       );
       startTime += durationMs
     ) {
-      if (startTime <= now.getTime() || startTime > latestAllowedStartTime) {
+      if (
+        (!includePast && startTime <= now.getTime()) ||
+        startTime > latestAllowedStartTime
+      ) {
         continue;
       }
 

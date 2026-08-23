@@ -167,3 +167,156 @@ test("rejects malformed JSON and nonsensical booking type durations", async () =
   assert.equal(invalidResponse.status, 400);
   assert.equal((await invalidResponse.json()).code, "VALIDATION_FAILED");
 });
+
+test("creates a booking and makes intersecting slots unavailable globally", async () => {
+  const server = createApp({
+    now: () => new Date("2026-01-01T08:00:00.000Z"),
+    seed: 1,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const booking = {
+      bookingTypeId: "booking-type-2",
+      timeSlotStart: "2026-01-01T10:00:00.000Z",
+      timeSlotEnd: "2026-01-01T11:00:00.000Z",
+      guestName: "Sam Guest",
+      guestEmail: "sam@example.com",
+    };
+
+    const createResponse = await fetch(`${baseUrl}/bookings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(booking),
+    });
+    const created = await createResponse.json();
+    assert.equal(createResponse.status, 201);
+    assert.match(created.id, /^booking-/);
+    assert.equal(created.bookingType.id, booking.bookingTypeId);
+    assert.deepEqual(created.timeSlot, {
+      id: "slot-22c6fa6d597dde7d217adeab",
+      startTime: booking.timeSlotStart,
+      endTime: booking.timeSlotEnd,
+      available: false,
+    });
+
+    const slotsResponse = await fetch(
+      `${baseUrl}/booking-types/booking-type-1/slots`,
+    );
+    const slots = await slotsResponse.json();
+    assert.equal(
+      slots.items.find(
+        (slot: { startTime: string }) =>
+          slot.startTime === "2026-01-01T10:30:00.000Z",
+      ).available,
+      false,
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test("enforces booking validation order and does not persist rejected requests", async () => {
+  const server = createApp({
+    now: () => new Date("2026-01-01T10:45:00.000Z"),
+    seed: 1,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const requestBooking = async (body: unknown) =>
+      fetch(`${baseUrl}/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    const valid = {
+      bookingTypeId: "booking-type-1",
+      timeSlotStart: "2026-01-01T10:30:00.000Z",
+      timeSlotEnd: "2026-01-01T11:00:00.000Z",
+      guestName: "Sam Guest",
+      guestEmail: "sam@example.com",
+    };
+
+    assert.equal(
+      (await requestBooking({ ...valid, guestEmail: "invalid" })).status,
+      400,
+    );
+    assert.equal(
+      (await requestBooking({ ...valid, bookingTypeId: "missing" })).status,
+      404,
+    );
+    assert.equal((await requestBooking(valid)).status, 400);
+    assert.equal(
+      (
+        await requestBooking({
+          ...valid,
+          timeSlotStart: "2026-01-01T10:45:00.000Z",
+          timeSlotEnd: "2026-01-01T11:15:00.000Z",
+        })
+      ).status,
+      400,
+    );
+
+    const bookingsResponse = await fetch(`${baseUrl}/owner/bookings`);
+    assert.deepEqual((await bookingsResponse.json()).items, []);
+  } finally {
+    server.close();
+  }
+});
+
+test("allows abutting bookings but rejects overlapping bookings across types", async () => {
+  const server = createApp({
+    now: () => new Date("2026-01-01T08:00:00.000Z"),
+    seed: 1,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const url = `http://127.0.0.1:${port}/bookings`;
+    const create = (
+      start: string,
+      end: string,
+      bookingTypeId = "booking-type-1",
+    ) =>
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingTypeId,
+          timeSlotStart: start,
+          timeSlotEnd: end,
+          guestName: "Sam Guest",
+          guestEmail: "sam@example.com",
+        }),
+      });
+
+    assert.equal(
+      (
+        await create(
+          "2026-01-01T10:00:00.000Z",
+          "2026-01-01T11:00:00.000Z",
+          "booking-type-2",
+        )
+      ).status,
+      201,
+    );
+    assert.equal(
+      (await create("2026-01-01T11:00:00.000Z", "2026-01-01T11:30:00.000Z"))
+        .status,
+      201,
+    );
+    assert.equal(
+      (await create("2026-01-01T10:30:00.000Z", "2026-01-01T11:00:00.000Z"))
+        .status,
+      409,
+    );
+  } finally {
+    server.close();
+  }
+});

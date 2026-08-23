@@ -41,6 +41,53 @@ function validationError(message: string) {
   return { code: "VALIDATION_FAILED", message };
 }
 
+interface CreateBookingInput {
+  bookingTypeId: string;
+  timeSlotStart: string;
+  timeSlotEnd: string;
+  guestName: string;
+  guestEmail: string;
+}
+
+function isCreateBookingInput(body: unknown): body is CreateBookingInput {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    return false;
+  }
+
+  const input = body as Record<string, unknown>;
+  if (
+    typeof input.bookingTypeId !== "string" ||
+    typeof input.timeSlotStart !== "string" ||
+    typeof input.timeSlotEnd !== "string" ||
+    typeof input.guestName !== "string" ||
+    typeof input.guestEmail !== "string" ||
+    input.guestName.trim().length === 0 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.guestEmail)
+  ) {
+    return false;
+  }
+
+  const start = new Date(input.timeSlotStart);
+  const end = new Date(input.timeSlotEnd);
+  return (
+    !Number.isNaN(start.getTime()) &&
+    !Number.isNaN(end.getTime()) &&
+    end.getTime() > start.getTime()
+  );
+}
+
+function intervalsIntersect(
+  firstStart: string,
+  firstEnd: string,
+  secondStart: string,
+  secondEnd: string,
+): boolean {
+  return (
+    new Date(firstStart).getTime() < new Date(secondEnd).getTime() &&
+    new Date(secondStart).getTime() < new Date(firstEnd).getTime()
+  );
+}
+
 export function createApp({
   now,
   seed,
@@ -75,7 +122,20 @@ export function createApp({
       return;
     }
 
-    response.json({ items: listTimeSlots(bookingType, now()) });
+    const bookings = repository.listBookings();
+    response.json({
+      items: listTimeSlots(bookingType, now()).map((slot) => ({
+        ...slot,
+        available: !bookings.some((booking) =>
+          intervalsIntersect(
+            slot.startTime,
+            slot.endTime,
+            booking.timeSlot.startTime,
+            booking.timeSlot.endTime,
+          ),
+        ),
+      })),
+    });
   });
 
   app.get("/owner/booking-types", (_request, response) => {
@@ -93,6 +153,71 @@ export function createApp({
 
   app.get("/owner/bookings", (_request, response) => {
     response.json({ items: repository.listBookings() });
+  });
+
+  app.post("/bookings", (request: Request, response) => {
+    if (!isCreateBookingInput(request.body)) {
+      response.status(400).json(validationError("Invalid booking"));
+      return;
+    }
+
+    const input = request.body;
+    const bookingType = repository.getBookingType(input.bookingTypeId);
+    if (!bookingType) {
+      response.status(404).json({
+        code: "BOOKING_TYPE_NOT_FOUND",
+        message: "Booking type not found",
+      });
+      return;
+    }
+
+    const currentTime = now();
+    const gridSlot = listTimeSlots(bookingType, currentTime, true).find(
+      (slot) =>
+        slot.startTime === input.timeSlotStart &&
+        slot.endTime === input.timeSlotEnd,
+    );
+    if (!gridSlot) {
+      response.status(400).json({
+        code: "SLOT_NOT_ON_GRID",
+        message: "Time slot is not on the booking grid",
+      });
+      return;
+    }
+
+    if (new Date(input.timeSlotStart).getTime() <= currentTime.getTime()) {
+      response.status(400).json({
+        code: "SLOT_IN_PAST",
+        message: "Time slot is in the past",
+      });
+      return;
+    }
+
+    const hasConflict = repository
+      .listBookings()
+      .some((booking) =>
+        intervalsIntersect(
+          input.timeSlotStart,
+          input.timeSlotEnd,
+          booking.timeSlot.startTime,
+          booking.timeSlot.endTime,
+        ),
+      );
+    if (hasConflict) {
+      response.status(409).json({
+        code: "SLOT_NOT_AVAILABLE",
+        message: "Time slot is not available",
+      });
+      return;
+    }
+
+    response.status(201).json(
+      repository.createBooking({
+        bookingType,
+        timeSlot: { ...gridSlot, available: false },
+        guest: { name: input.guestName.trim(), email: input.guestEmail },
+      }),
+    );
   });
 
   const jsonErrorHandler: ErrorRequestHandler = (
