@@ -6,8 +6,7 @@
  * A predefined owner profile (read-only, no auth).
  */
 export type Owner = {
-    id: string;
-    name: string;
-    bio: string;
+  id: string;
+  name: string;
+  bio: string;
 };
-

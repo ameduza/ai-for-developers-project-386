@@ -62,7 +62,9 @@ export function useCancelBookingMutation() {
   return useMutation({
     mutationFn: cancelBooking,
     onSuccess: (_data, bookingId) => {
-      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.GUEST_BOOKING, bookingId] });
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.GUEST_BOOKING, bookingId],
+      });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.GUEST_TIME_SLOTS });
     },
   });

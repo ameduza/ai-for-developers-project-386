@@ -17,6 +17,7 @@ import {
 } from "@/features/guest/schemas";
 import { useCreateBookingMutation } from "@/features/guest/queries";
 import { formatTimeSlot } from "@/features/guest/format-time-slot";
+import { extractApiErrorMessage } from "@/lib/api/extract-error-message";
 
 type BookingFormProps = {
   bookingTypeId: string;
@@ -35,9 +36,9 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
   } = useForm<CreateBookingFormData>({
     resolver: zodResolver(createBookingSchema),
     defaultValues: {
-      bookingTypeId: bookingTypeId,
-      timeSlotStart: timeSlot.startTime,
-      timeSlotEnd: timeSlot.endTime,
+      eventTypeId: bookingTypeId,
+      slotStart: timeSlot.startTime,
+      slotEnd: timeSlot.endTime,
       guestName: "",
       guestEmail: "",
     },
@@ -66,7 +67,7 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
       }
 
       if (error.status === 400) {
-        const message = error.extractErrorMessage();
+        const message = extractApiErrorMessage(error);
         let mappedToField = false;
 
         if (/email/i.test(message)) {
@@ -88,7 +89,7 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
 
       setError("root.serverError", {
         type: "server",
-        message: error.extractErrorMessage(),
+        message: extractApiErrorMessage(error),
       });
     }
   };

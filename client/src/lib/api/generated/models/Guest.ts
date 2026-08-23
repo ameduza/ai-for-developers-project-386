@@ -6,7 +6,6 @@
  * Guest contact details provided when booking.
  */
 export type Guest = {
-    name: string;
-    email: string;
+  name: string;
+  email: string;
 };
-

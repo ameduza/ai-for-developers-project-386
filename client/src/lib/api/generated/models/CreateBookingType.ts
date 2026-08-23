@@ -3,8 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CreateBookingType = {
-    title: string;
-    description: string;
-    durationMinutes: number;
+  title: string;
+  description: string;
+  durationMinutes: number;
 };
-

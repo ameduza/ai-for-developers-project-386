@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { createBookingSchema } from "@/features/guest/schemas";
 
 const validBooking = {
-  bookingTypeId: "consultation",
-  timeSlotStart: "2026-10-15T10:00:00Z",
-  timeSlotEnd: "2026-10-15T10:30:00Z",
+  eventTypeId: "consultation",
+  slotStart: "2026-10-15T10:00:00Z",
+  slotEnd: "2026-10-15T10:30:00Z",
   guestName: "Ada Lovelace",
   guestEmail: "ada@example.com",
 };
@@ -47,7 +47,7 @@ describe("createBooking Schema Validation", () => {
   });
 
   it("rejects a missing booking type id", () => {
-    const invalidData = { ...validBooking, bookingTypeId: "" };
+    const invalidData = { ...validBooking, eventTypeId: "" };
     const result = createBookingSchema.safeParse(invalidData);
     assert.equal(
       result.success,
@@ -59,7 +59,7 @@ describe("createBooking Schema Validation", () => {
   it("rejects missing time slot boundaries", () => {
     const missingStart = createBookingSchema.safeParse({
       ...validBooking,
-      timeSlotStart: "",
+      slotStart: "",
     });
     assert.equal(
       missingStart.success,
@@ -69,7 +69,7 @@ describe("createBooking Schema Validation", () => {
 
     const missingEnd = createBookingSchema.safeParse({
       ...validBooking,
-      timeSlotEnd: "",
+      slotEnd: "",
     });
     assert.equal(
       missingEnd.success,

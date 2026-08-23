@@ -6,9 +6,8 @@
  * A bookable session type the owner offers.
  */
 export type BookingType = {
-    id: string;
-    title: string;
-    description: string;
-    durationMinutes: number;
+  id: string;
+  title: string;
+  description: string;
+  durationMinutes: number;
 };
-

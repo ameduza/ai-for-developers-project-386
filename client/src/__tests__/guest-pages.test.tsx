@@ -314,9 +314,9 @@ describe("GuestBookingTypePage", () => {
     assert.ok(post, "Expected a POST request to /bookings");
     assert.ok(post.url.endsWith("/bookings"));
     assert.deepEqual(JSON.parse(post.body ?? "{}"), {
-      bookingTypeId: "consultation",
-      timeSlotStart: slotStart,
-      timeSlotEnd: slotEnd,
+      eventTypeId: "consultation",
+      slotStart: slotStart,
+      slotEnd: slotEnd,
       guestName: "Ada Lovelace",
       guestEmail: "ada@example.com",
     });

@@ -6,9 +6,8 @@
  * An available time window within the 14-day booking window.
  */
 export type TimeSlot = {
-    id: string;
-    startTime: string;
-    endTime: string;
-    available: boolean;
+  id: string;
+  startTime: string;
+  endTime: string;
+  available: boolean;
 };
-
