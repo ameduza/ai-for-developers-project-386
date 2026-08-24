@@ -19,10 +19,10 @@
   },
   "scripts": {
     "build:contract": "npm run build:contract --workspace typespec",
-    "test": "npm run test --workspace client && npm run test --workspace server",
-    "typecheck": "npm run typecheck --workspace client && npm run typecheck --workspace server",
-    "lint": "npm run lint --workspace client && npm run lint --workspace server",
-    "format:check": "npm run format:check --workspace client && npm run format:check --workspace server",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present",
     "prepare": "husky"
   },
   "lint-staged": {
