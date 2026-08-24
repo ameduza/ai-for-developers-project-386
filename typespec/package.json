@@ -4,7 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build:contract": "tsp compile ."
+    "build:contract": "tsp compile .",
+    "generate:server-models": "node scripts/generate-server-models.mjs",
+    "verify:server-models": "node scripts/generate-server-models.mjs --check"
   },
   "dependencies": {
     "@typespec/compiler": "^1.15.0",

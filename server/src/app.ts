@@ -4,12 +4,14 @@ import express, {
   type Express,
   type Request,
 } from "express";
-import {
-  InMemoryRepository,
-  type CreateBookingTypeInput,
-  type Repository,
-} from "./repository.js";
+import { InMemoryRepository, type Repository } from "./repository.js";
 import { listTimeSlots } from "./availability.js";
+import type {
+  CreateBooking,
+  CreateBookingType,
+  Error,
+  ErrorCode,
+} from "./generated/api-models.js";
 
 export interface CreateAppOptions {
   now: () => Date;
@@ -17,9 +19,7 @@ export interface CreateAppOptions {
   repository?: Repository;
 }
 
-function isCreateBookingTypeInput(
-  body: unknown,
-): body is CreateBookingTypeInput {
+function isCreateBookingTypeInput(body: unknown): body is CreateBookingType {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return false;
   }
@@ -37,19 +37,15 @@ function isCreateBookingTypeInput(
   );
 }
 
-function validationError(message: string) {
-  return { code: "VALIDATION_FAILED", message };
+function validationError(message: string): Error {
+  return protocolError("VALIDATION_FAILED", message);
 }
 
-interface CreateBookingInput {
-  bookingTypeId: string;
-  timeSlotStart: string;
-  timeSlotEnd: string;
-  guestName: string;
-  guestEmail: string;
+function protocolError(code: ErrorCode, message: string): Error {
+  return { code, message };
 }
 
-function isCreateBookingInput(body: unknown): body is CreateBookingInput {
+function isCreateBookingInput(body: unknown): body is CreateBooking {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
     return false;
   }
@@ -137,10 +133,11 @@ export function createApp({
         : undefined;
 
     if (!bookingType) {
-      response.status(404).json({
-        code: "BOOKING_TYPE_NOT_FOUND",
-        message: "Booking type not found",
-      });
+      response
+        .status(404)
+        .json(
+          protocolError("BOOKING_TYPE_NOT_FOUND", "Booking type not found"),
+        );
       return;
     }
 
@@ -199,10 +196,11 @@ export function createApp({
     const input = request.body;
     const bookingType = repository.getBookingType(input.bookingTypeId);
     if (!bookingType) {
-      response.status(404).json({
-        code: "BOOKING_TYPE_NOT_FOUND",
-        message: "Booking type not found",
-      });
+      response
+        .status(404)
+        .json(
+          protocolError("BOOKING_TYPE_NOT_FOUND", "Booking type not found"),
+        );
       return;
     }
 
@@ -213,18 +211,21 @@ export function createApp({
         slot.endTime === input.timeSlotEnd,
     );
     if (!gridSlot) {
-      response.status(400).json({
-        code: "SLOT_NOT_ON_GRID",
-        message: "Time slot is not on the booking grid",
-      });
+      response
+        .status(400)
+        .json(
+          protocolError(
+            "SLOT_NOT_ON_GRID",
+            "Time slot is not on the booking grid",
+          ),
+        );
       return;
     }
 
     if (new Date(input.timeSlotStart).getTime() <= currentTime.getTime()) {
-      response.status(400).json({
-        code: "SLOT_IN_PAST",
-        message: "Time slot is in the past",
-      });
+      response
+        .status(400)
+        .json(protocolError("SLOT_IN_PAST", "Time slot is in the past"));
       return;
     }
 
@@ -239,10 +240,11 @@ export function createApp({
         ),
       );
     if (hasConflict) {
-      response.status(409).json({
-        code: "SLOT_NOT_AVAILABLE",
-        message: "Time slot is not available",
-      });
+      response
+        .status(409)
+        .json(
+          protocolError("SLOT_NOT_AVAILABLE", "Time slot is not available"),
+        );
       return;
     }
 
@@ -263,10 +265,9 @@ export function createApp({
         : undefined;
 
     if (!booking) {
-      response.status(404).json({
-        code: "BOOKING_NOT_FOUND",
-        message: "Booking not found",
-      });
+      response
+        .status(404)
+        .json(protocolError("BOOKING_NOT_FOUND", "Booking not found"));
       return;
     }
 
@@ -281,10 +282,9 @@ export function createApp({
         : false;
 
     if (!deleted) {
-      response.status(404).json({
-        code: "BOOKING_NOT_FOUND",
-        message: "Booking not found",
-      });
+      response
+        .status(404)
+        .json(protocolError("BOOKING_NOT_FOUND", "Booking not found"));
       return;
     }
 

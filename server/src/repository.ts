@@ -1,46 +1,18 @@
-export interface Owner {
-  id: string;
-  name: string;
-  bio: string;
-}
+import type {
+  Booking,
+  BookingType,
+  CreateBookingType,
+  Owner,
+  TimeSlot,
+} from "./generated/api-models.js";
 
-export interface BookingType {
-  id: string;
-  title: string;
-  description: string;
-  durationMinutes: number;
-}
-
-export interface TimeSlot {
-  id: string;
-  startTime: string;
-  endTime: string;
-  available: boolean;
-}
-
-export interface Guest {
-  name: string;
-  email: string;
-}
-
-export interface Booking {
-  id: string;
-  bookingType: BookingType;
-  timeSlot: TimeSlot;
-  guest: Guest;
-}
-
-export interface CreateBookingTypeInput {
-  title: string;
-  description: string;
-  durationMinutes: number;
-}
+export type { Booking, BookingType, Owner, TimeSlot };
 
 export interface Repository {
   getOwner(): Owner;
   listBookingTypes(): BookingType[];
   getBookingType(id: string): BookingType | undefined;
-  createBookingType(input: CreateBookingTypeInput): BookingType;
+  createBookingType(input: CreateBookingType): BookingType;
   listBookings(): Booking[];
   getBooking(id: string): Booking | undefined;
   createBooking(booking: Omit<Booking, "id">): Booking;
@@ -91,7 +63,7 @@ export class InMemoryRepository implements Repository {
     return this.bookingTypes.find((bookingType) => bookingType.id === id);
   }
 
-  createBookingType(input: CreateBookingTypeInput): BookingType {
+  createBookingType(input: CreateBookingType): BookingType {
     const bookingType = {
       id: `booking-type-${this.nextBookingTypeId++}`,
       ...input,

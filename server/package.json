@@ -10,7 +10,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "format:staged": "prettier --write",
-    "typecheck": "tsc --noEmit",
+    "generate:models": "node ../typespec/scripts/generate-server-models.mjs",
+    "verify:models": "node ../typespec/scripts/generate-server-models.mjs --check",
+    "typecheck": "npm run verify:models && tsc --noEmit",
     "test": "tsx --test src/__tests__/*.test.ts",
     "start": "tsx src/server.ts"
   },
