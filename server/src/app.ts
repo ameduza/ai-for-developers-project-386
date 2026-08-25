@@ -4,7 +4,7 @@ import express, {
   type Express,
   type Request,
 } from "express";
-import { InMemoryRepository, type Repository } from "./repository.js";
+import { InMemoryRepository, type Fixture } from "./repository.js";
 import { listTimeSlots } from "./availability.js";
 import type {
   CreateBooking,
@@ -15,8 +15,7 @@ import type {
 
 export interface CreateAppOptions {
   now: () => Date;
-  seed: number;
-  repository?: Repository;
+  fixture: Fixture;
 }
 
 function isCreateBookingTypeInput(body: unknown): body is CreateBookingType {
@@ -106,12 +105,8 @@ function intervalsIntersect(
   );
 }
 
-export function createApp({
-  now,
-  seed,
-  repository = new InMemoryRepository(),
-}: CreateAppOptions): Express {
-  void seed;
+export function createApp({ now, fixture }: CreateAppOptions): Express {
+  const repository = new InMemoryRepository(fixture);
 
   const app = express();
   app.use(cors({ origin: "http://localhost:5173" }));

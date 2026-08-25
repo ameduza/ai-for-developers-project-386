@@ -3,12 +3,43 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import test from "node:test";
 import { createApp } from "../app.js";
-import { InMemoryRepository } from "../repository.js";
+import type { Fixture } from "../repository.js";
+
+function createFixture(): Fixture {
+  return {
+    owner: {
+      id: "owner-1",
+      name: "Test Owner",
+      bio: "A fixture-owned profile.",
+    },
+    bookingTypes: [
+      {
+        id: "booking-type-1",
+        title: "Short call",
+        description: "A short fixture booking type.",
+        durationMinutes: 30,
+      },
+      {
+        id: "booking-type-2",
+        title: "Long call",
+        description: "A long fixture booking type.",
+        durationMinutes: 60,
+      },
+      {
+        id: "booking-type-3",
+        title: "Workshop",
+        description: "A workshop fixture booking type.",
+        durationMinutes: 90,
+      },
+    ],
+    bookings: [],
+  };
+}
 
 test("createApp serves requests through a real ephemeral server", async () => {
   const server = createApp({
     now: () => new Date("2026-01-01T00:00:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -34,7 +65,7 @@ async function requestApp(
 ): Promise<Response> {
   const server = createApp({
     now: () => new Date("2026-01-01T00:00:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -63,7 +94,7 @@ test("lists the seeded owner and booking types", async () => {
 test("lists a deterministic weekday time-slot grid for a booking type", async () => {
   const server = createApp({
     now: () => new Date("2026-01-01T00:00:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -119,7 +150,10 @@ test("returns a clear not-found error for unknown booking types", async () => {
 });
 
 test("creates a booking type and returns it in the guest list", async () => {
-  const server = createApp({ now: () => new Date(), seed: 1 }).listen(0);
+  const server = createApp({
+    now: () => new Date(),
+    fixture: createFixture(),
+  }).listen(0);
   try {
     await once(server, "listening");
     const { port } = server.address() as AddressInfo;
@@ -172,7 +206,7 @@ test("rejects malformed JSON and nonsensical booking type durations", async () =
 test("creates a booking and makes intersecting slots unavailable globally", async () => {
   const server = createApp({
     now: () => new Date("2026-01-01T08:00:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -222,7 +256,7 @@ test("creates a booking and makes intersecting slots unavailable globally", asyn
 test("enforces booking validation order and does not persist rejected requests", async () => {
   const server = createApp({
     now: () => new Date("2026-01-01T10:45:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -275,7 +309,7 @@ test("enforces booking validation order and does not persist rejected requests",
 test("allows abutting bookings but rejects overlapping bookings across types", async () => {
   const server = createApp({
     now: () => new Date("2026-01-01T08:00:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -327,7 +361,7 @@ test("allows abutting bookings but rejects overlapping bookings across types", a
 test("fetches and cancels a booking, freeing its time slot", async () => {
   const server = createApp({
     now: () => new Date("2026-01-01T08:00:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -377,7 +411,7 @@ test("fetches and cancels a booking, freeing its time slot", async () => {
 test("returns booking not found for unknown and already-cancelled bookings", async () => {
   const server = createApp({
     now: () => new Date("2026-01-01T08:00:00.000Z"),
-    seed: 1,
+    fixture: createFixture(),
   }).listen(0);
 
   try {
@@ -431,42 +465,46 @@ test("returns booking not found for unknown and already-cancelled bookings", asy
 });
 
 test("lists only upcoming bookings in start-time order with guest contact details", async () => {
-  const repository = new InMemoryRepository();
-  repository.createBooking({
-    bookingType: repository.getBookingType("booking-type-1")!,
-    timeSlot: {
-      id: "past-slot",
-      startTime: "2026-01-01T07:00:00.000Z",
-      endTime: "2026-01-01T07:30:00.000Z",
-      available: false,
+  const fixture = createFixture();
+  fixture.bookings.push(
+    {
+      id: "booking-1",
+      bookingTypeId: "booking-type-1",
+      timeSlot: {
+        id: "past-slot",
+        startTime: "2026-01-01T07:00:00.000Z",
+        endTime: "2026-01-01T07:30:00.000Z",
+        available: false,
+      },
+      guest: { name: "Past Guest", email: "past@example.com" },
     },
-    guest: { name: "Past Guest", email: "past@example.com" },
-  });
-  repository.createBooking({
-    bookingType: repository.getBookingType("booking-type-2")!,
-    timeSlot: {
-      id: "late-slot",
-      startTime: "2026-01-01T11:00:00.000Z",
-      endTime: "2026-01-01T12:00:00.000Z",
-      available: false,
+    {
+      id: "booking-2",
+      bookingTypeId: "booking-type-2",
+      timeSlot: {
+        id: "late-slot",
+        startTime: "2026-01-01T11:00:00.000Z",
+        endTime: "2026-01-01T12:00:00.000Z",
+        available: false,
+      },
+      guest: { name: "Grace Hopper", email: "grace@example.com" },
     },
-    guest: { name: "Grace Hopper", email: "grace@example.com" },
-  });
-  repository.createBooking({
-    bookingType: repository.getBookingType("booking-type-1")!,
-    timeSlot: {
-      id: "early-slot",
-      startTime: "2026-01-01T09:00:00.000Z",
-      endTime: "2026-01-01T09:30:00.000Z",
-      available: false,
+    {
+      id: "booking-3",
+      bookingTypeId: "booking-type-1",
+      timeSlot: {
+        id: "early-slot",
+        startTime: "2026-01-01T09:00:00.000Z",
+        endTime: "2026-01-01T09:30:00.000Z",
+        available: false,
+      },
+      guest: { name: "Ada Lovelace", email: "ada@example.com" },
     },
-    guest: { name: "Ada Lovelace", email: "ada@example.com" },
-  });
+  );
 
   const server = createApp({
     now: () => new Date("2026-01-01T08:00:00.000Z"),
-    seed: 1,
-    repository,
+    fixture,
   }).listen(0);
 
   try {
@@ -479,7 +517,7 @@ test("lists only upcoming bookings in start-time order with guest contact detail
       items: [
         {
           id: "booking-3",
-          bookingType: repository.getBookingType("booking-type-1"),
+          bookingType: fixture.bookingTypes[0],
           timeSlot: {
             id: "early-slot",
             startTime: "2026-01-01T09:00:00.000Z",
@@ -490,7 +528,7 @@ test("lists only upcoming bookings in start-time order with guest contact detail
         },
         {
           id: "booking-2",
-          bookingType: repository.getBookingType("booking-type-2"),
+          bookingType: fixture.bookingTypes[1],
           timeSlot: {
             id: "late-slot",
             startTime: "2026-01-01T11:00:00.000Z",
@@ -517,4 +555,202 @@ test("lists only upcoming bookings in start-time order with guest contact detail
   } finally {
     server.close();
   }
+});
+
+test("serves normalized, sorted fixture bookings without retaining fixture references", async () => {
+  const fixture = createFixture();
+  fixture.bookings.push(
+    {
+      id: "booking-7",
+      bookingTypeId: "booking-type-2",
+      timeSlot: {
+        id: "fixture-late-slot",
+        startTime: "2026-01-01T11:00:00.000Z",
+        endTime: "2026-01-01T12:00:00.000Z",
+        available: false,
+      },
+      guest: { name: "Grace Hopper", email: "grace@example.com" },
+    },
+    {
+      id: "booking-3",
+      bookingTypeId: "booking-type-1",
+      timeSlot: {
+        id: "fixture-early-slot",
+        startTime: "2026-01-01T09:00:00.000Z",
+        endTime: "2026-01-01T09:30:00.000Z",
+        available: false,
+      },
+      guest: { name: "Ada Lovelace", email: "ada@example.com" },
+    },
+  );
+  const server = createApp({
+    now: () => new Date("2026-01-01T08:00:00.000Z"),
+    fixture,
+  }).listen(0);
+  fixture.owner.name = "Mutated owner";
+  fixture.bookingTypes[0].title = "Mutated type";
+  fixture.bookings[1].guest.name = "Mutated guest";
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${port}/owner/bookings`);
+
+    assert.deepEqual(await response.json(), {
+      items: [
+        {
+          id: "booking-3",
+          bookingType: {
+            id: "booking-type-1",
+            title: "Short call",
+            description: "A short fixture booking type.",
+            durationMinutes: 30,
+          },
+          timeSlot: {
+            id: "fixture-early-slot",
+            startTime: "2026-01-01T09:00:00.000Z",
+            endTime: "2026-01-01T09:30:00.000Z",
+            available: false,
+          },
+          guest: { name: "Ada Lovelace", email: "ada@example.com" },
+        },
+        {
+          id: "booking-7",
+          bookingType: {
+            id: "booking-type-2",
+            title: "Long call",
+            description: "A long fixture booking type.",
+            durationMinutes: 60,
+          },
+          timeSlot: {
+            id: "fixture-late-slot",
+            startTime: "2026-01-01T11:00:00.000Z",
+            endTime: "2026-01-01T12:00:00.000Z",
+            available: false,
+          },
+          guest: { name: "Grace Hopper", email: "grace@example.com" },
+        },
+      ],
+    });
+    assert.equal(
+      (await (await fetch(`http://127.0.0.1:${port}/owner`)).json()).name,
+      "Test Owner",
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test("allocates identifiers after sparse fixture identifiers", async () => {
+  const fixture = createFixture();
+  fixture.bookingTypes.pop();
+  fixture.bookingTypes[1].id = "booking-type-9";
+  fixture.bookings.push({
+    id: "booking-12",
+    bookingTypeId: "booking-type-1",
+    timeSlot: {
+      id: "fixture-slot",
+      startTime: "2026-01-01T10:00:00.000Z",
+      endTime: "2026-01-01T10:30:00.000Z",
+      available: false,
+    },
+    guest: { name: "Fixture Guest", email: "fixture@example.com" },
+  });
+  const server = createApp({
+    now: () => new Date("2026-01-01T08:00:00.000Z"),
+    fixture,
+  }).listen(0);
+
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const bookingType = await (
+      await fetch(`${baseUrl}/owner/booking-types`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "New type",
+          description: "Created after sparse fixture data.",
+          durationMinutes: 30,
+        }),
+      })
+    ).json();
+    const booking = await (
+      await fetch(`${baseUrl}/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingTypeId: "booking-type-1",
+          timeSlotStart: "2026-01-01T10:30:00.000Z",
+          timeSlotEnd: "2026-01-01T11:00:00.000Z",
+          guestName: "New Guest",
+          guestEmail: "new@example.com",
+        }),
+      })
+    ).json();
+
+    assert.equal(bookingType.id, "booking-type-10");
+    assert.equal(booking.id, "booking-13");
+  } finally {
+    server.close();
+  }
+});
+
+test("rejects incoherent fixture identifiers and booking type references", () => {
+  const duplicateBookingTypes = createFixture();
+  duplicateBookingTypes.bookingTypes.push({
+    ...duplicateBookingTypes.bookingTypes[0],
+  });
+  assert.throws(
+    () => createApp({ now: () => new Date(), fixture: duplicateBookingTypes }),
+    /Duplicate Booking Type identifier: booking-type-1/,
+  );
+
+  const duplicateBookings = createFixture();
+  duplicateBookings.bookings.push(
+    {
+      id: "booking-1",
+      bookingTypeId: "booking-type-1",
+      timeSlot: {
+        id: "first-slot",
+        startTime: "2026-01-01T09:00:00.000Z",
+        endTime: "2026-01-01T09:30:00.000Z",
+        available: false,
+      },
+      guest: { name: "First Guest", email: "first@example.com" },
+    },
+    {
+      id: "booking-1",
+      bookingTypeId: "booking-type-1",
+      timeSlot: {
+        id: "second-slot",
+        startTime: "2026-01-01T10:00:00.000Z",
+        endTime: "2026-01-01T10:30:00.000Z",
+        available: false,
+      },
+      guest: { name: "Second Guest", email: "second@example.com" },
+    },
+  );
+  assert.throws(
+    () => createApp({ now: () => new Date(), fixture: duplicateBookings }),
+    /Duplicate Booking identifier: booking-1/,
+  );
+
+  const missingBookingType = createFixture();
+  missingBookingType.bookings.push({
+    id: "booking-1",
+    bookingTypeId: "missing",
+    timeSlot: {
+      id: "missing-type-slot",
+      startTime: "2026-01-01T09:00:00.000Z",
+      endTime: "2026-01-01T09:30:00.000Z",
+      available: false,
+    },
+    guest: { name: "Guest", email: "guest@example.com" },
+  });
+  assert.throws(
+    () => createApp({ now: () => new Date(), fixture: missingBookingType }),
+    /references missing Booking Type: missing/,
+  );
 });

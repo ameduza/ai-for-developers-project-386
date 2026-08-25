@@ -8,6 +8,16 @@ import type {
 
 export type { Booking, BookingType, Owner, TimeSlot };
 
+export interface FixtureBooking extends Omit<Booking, "bookingType"> {
+  bookingTypeId: string;
+}
+
+export interface Fixture {
+  owner: Owner;
+  bookingTypes: BookingType[];
+  bookings: FixtureBooking[];
+}
+
 export interface Repository {
   getOwner(): Owner;
   listBookingTypes(): BookingType[];
@@ -19,74 +29,116 @@ export interface Repository {
   deleteBooking(id: string): boolean;
 }
 
-export class InMemoryRepository implements Repository {
-  private readonly owner: Owner = {
-    id: "owner-1",
-    name: "Alex Morgan",
-    bio: "Product designer and systems thinker.",
+function assertUniqueIds(
+  entityName: string,
+  entities: ReadonlyArray<{ id: string }>,
+): void {
+  const ids = new Set<string>();
+  for (const entity of entities) {
+    if (ids.has(entity.id)) {
+      throw new Error(`Duplicate ${entityName} identifier: ${entity.id}`);
+    }
+    ids.add(entity.id);
+  }
+}
+
+function nextIdentifier(
+  prefix: string,
+  existingIds: ReadonlyArray<string>,
+): string {
+  const numericSuffixes = existingIds
+    .map((id) => new RegExp(`^${prefix}-(\\d+)$`).exec(id))
+    .map((match) => (match ? Number(match[1]) : 0))
+    .filter((suffix) => Number.isSafeInteger(suffix));
+  return `${prefix}-${Math.max(0, ...numericSuffixes) + 1}`;
+}
+
+function cloneBooking(booking: Booking): Booking {
+  return {
+    ...booking,
+    bookingType: { ...booking.bookingType },
+    timeSlot: { ...booking.timeSlot },
+    guest: { ...booking.guest },
   };
+}
 
-  private readonly bookingTypes: BookingType[] = [
-    {
-      id: "booking-type-1",
-      title: "Introductory call",
-      description: "A short call to discuss your goals and next steps.",
-      durationMinutes: 30,
-    },
-    {
-      id: "booking-type-2",
-      title: "Deep-dive consultation",
-      description: "A focused session for exploring a specific challenge.",
-      durationMinutes: 60,
-    },
-    {
-      id: "booking-type-3",
-      title: "Strategy workshop",
-      description: "A longer workshop to turn ideas into an actionable plan.",
-      durationMinutes: 90,
-    },
-  ];
+export class InMemoryRepository implements Repository {
+  private readonly owner: Owner;
+  private readonly bookingTypes: BookingType[];
+  private readonly bookings: Booking[];
 
-  private readonly bookings: Booking[] = [];
-  private nextBookingTypeId = this.bookingTypes.length + 1;
-  private nextBookingId = 1;
+  constructor(fixture: Fixture) {
+    assertUniqueIds("Booking Type", fixture.bookingTypes);
+    assertUniqueIds("Booking", fixture.bookings);
+
+    this.owner = { ...fixture.owner };
+    this.bookingTypes = fixture.bookingTypes.map((bookingType) => ({
+      ...bookingType,
+    }));
+    const bookingTypesById = new Map(
+      this.bookingTypes.map((bookingType) => [bookingType.id, bookingType]),
+    );
+    this.bookings = fixture.bookings.map((fixtureBooking) => {
+      const bookingType = bookingTypesById.get(fixtureBooking.bookingTypeId);
+      if (!bookingType) {
+        throw new Error(
+          `Booking ${fixtureBooking.id} references missing Booking Type: ${fixtureBooking.bookingTypeId}`,
+        );
+      }
+      const { bookingTypeId, ...booking } = fixtureBooking;
+      void bookingTypeId;
+      return cloneBooking({ ...booking, bookingType });
+    });
+  }
 
   getOwner(): Owner {
-    return this.owner;
+    return { ...this.owner };
   }
 
   listBookingTypes(): BookingType[] {
-    return [...this.bookingTypes];
+    return this.bookingTypes.map((bookingType) => ({ ...bookingType }));
   }
 
   getBookingType(id: string): BookingType | undefined {
-    return this.bookingTypes.find((bookingType) => bookingType.id === id);
+    const bookingType = this.bookingTypes.find(
+      (candidate) => candidate.id === id,
+    );
+    return bookingType && { ...bookingType };
   }
 
   createBookingType(input: CreateBookingType): BookingType {
     const bookingType = {
-      id: `booking-type-${this.nextBookingTypeId++}`,
+      id: nextIdentifier(
+        "booking-type",
+        this.bookingTypes.map((candidate) => candidate.id),
+      ),
       ...input,
     };
     this.bookingTypes.push(bookingType);
-    return bookingType;
+    return { ...bookingType };
   }
 
   listBookings(): Booking[] {
-    return [...this.bookings];
+    return this.bookings.map(cloneBooking);
   }
 
   getBooking(id: string): Booking | undefined {
-    return this.bookings.find((booking) => booking.id === id);
+    const booking = this.bookings.find((candidate) => candidate.id === id);
+    return booking && cloneBooking(booking);
   }
 
   createBooking(booking: Omit<Booking, "id">): Booking {
     const createdBooking = {
-      id: `booking-${this.nextBookingId++}`,
-      ...booking,
+      id: nextIdentifier(
+        "booking",
+        this.bookings.map((candidate) => candidate.id),
+      ),
+      bookingType: { ...booking.bookingType },
+      timeSlot: { ...booking.timeSlot },
+      guest: { ...booking.guest },
     };
     this.bookings.push(createdBooking);
-    return createdBooking;
+    return cloneBooking(createdBooking);
   }
 
   deleteBooking(id: string): boolean {
