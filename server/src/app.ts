@@ -6,6 +6,7 @@ import express, {
 } from "express";
 import { InMemoryRepository, type Fixture } from "./repository.js";
 import { listTimeSlots } from "./availability.js";
+import { TimeInterval } from "./time-interval.js";
 import type {
   CreateBooking,
   CreateBookingType,
@@ -84,25 +85,12 @@ function isCreateBookingInput(body: unknown): body is CreateBooking {
     );
   }
 
-  const start = new Date(input.timeSlotStart);
-  const end = new Date(input.timeSlotEnd);
-  return (
-    !Number.isNaN(start.getTime()) &&
-    !Number.isNaN(end.getTime()) &&
-    end.getTime() > start.getTime()
-  );
-}
-
-function intervalsIntersect(
-  firstStart: string,
-  firstEnd: string,
-  secondStart: string,
-  secondEnd: string,
-): boolean {
-  return (
-    new Date(firstStart).getTime() < new Date(secondEnd).getTime() &&
-    new Date(secondStart).getTime() < new Date(firstEnd).getTime()
-  );
+  try {
+    new TimeInterval(input.timeSlotStart, input.timeSlotEnd);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createApp({ now, fixture }: CreateAppOptions): Express {
@@ -141,11 +129,11 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
       items: listTimeSlots(bookingType, now()).map((slot) => ({
         ...slot,
         available: !bookings.some((booking) =>
-          intervalsIntersect(
-            slot.startTime,
-            slot.endTime,
-            booking.timeSlot.startTime,
-            booking.timeSlot.endTime,
+          new TimeInterval(slot.startTime, slot.endTime).intersects(
+            new TimeInterval(
+              booking.timeSlot.startTime,
+              booking.timeSlot.endTime,
+            ),
           ),
         ),
       })),
@@ -227,11 +215,11 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
     const hasConflict = repository
       .listBookings()
       .some((booking) =>
-        intervalsIntersect(
-          input.timeSlotStart,
-          input.timeSlotEnd,
-          booking.timeSlot.startTime,
-          booking.timeSlot.endTime,
+        new TimeInterval(input.timeSlotStart, input.timeSlotEnd).intersects(
+          new TimeInterval(
+            booking.timeSlot.startTime,
+            booking.timeSlot.endTime,
+          ),
         ),
       );
     if (hasConflict) {
