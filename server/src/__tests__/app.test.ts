@@ -3,7 +3,8 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import test from "node:test";
 import { createApp } from "../app.js";
-import type { Fixture } from "../repository.js";
+
+type Fixture = Parameters<typeof createApp>[0]["fixture"];
 
 function createFixture(): Fixture {
   return {
@@ -34,6 +35,73 @@ function createFixture(): Fixture {
     ],
     bookings: [],
   };
+}
+
+function createRejectionFixture(): Fixture {
+  const fixture = createFixture();
+  fixture.bookings.push(
+    {
+      id: "booking-1",
+      bookingTypeId: "booking-type-2",
+      timeSlot: {
+        id: "existing-morning-slot",
+        startTime: "2026-01-01T10:00:00.000Z",
+        endTime: "2026-01-01T11:00:00.000Z",
+        available: false,
+      },
+      guest: { name: "Morning Guest", email: "morning@example.com" },
+    },
+    {
+      id: "booking-2",
+      bookingTypeId: "booking-type-2",
+      timeSlot: {
+        id: "existing-afternoon-slot",
+        startTime: "2026-01-01T12:00:00.000Z",
+        endTime: "2026-01-01T13:00:00.000Z",
+        available: false,
+      },
+      guest: { name: "Afternoon Guest", email: "afternoon@example.com" },
+    },
+  );
+  return fixture;
+}
+
+async function withTestServer(
+  options: Parameters<typeof createApp>[0],
+  run: (baseUrl: string) => Promise<void>,
+): Promise<void> {
+  const server = createApp(options).listen(0);
+  try {
+    await once(server, "listening");
+    const { port } = server.address() as AddressInfo;
+    await run(`http://127.0.0.1:${port}`);
+  } finally {
+    server.close();
+  }
+}
+
+async function getBookingProjections(
+  baseUrl: string,
+  bookingTypeId: string,
+): Promise<{ timeSlots: unknown; upcomingBookings: unknown }> {
+  const [timeSlotsResponse, upcomingBookingsResponse] = await Promise.all([
+    fetch(`${baseUrl}/booking-types/${bookingTypeId}/slots`),
+    fetch(`${baseUrl}/owner/bookings`),
+  ]);
+  assert.equal(timeSlotsResponse.status, 200);
+  assert.equal(upcomingBookingsResponse.status, 200);
+  return {
+    timeSlots: await timeSlotsResponse.json(),
+    upcomingBookings: await upcomingBookingsResponse.json(),
+  };
+}
+
+function postBooking(baseUrl: string, body: unknown): Promise<Response> {
+  return fetch(`${baseUrl}/bookings`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 test("createApp serves requests through a real ephemeral server", async () => {
@@ -229,24 +297,150 @@ test("rejects malformed JSON and invalid booking type bodies with stable validat
   });
 });
 
-test("rejects invalid booking bodies without exposing validation details", async () => {
-  const response = await requestApp("/bookings", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      bookingTypeId: "booking-type-1",
-      timeSlotStart: "2026-01-01T10:00:00.000Z",
-      timeSlotEnd: "2026-01-01T10:30:00.000Z",
-      guestName: "Guest",
-      guestEmail: "guest name@example.com",
-    }),
-  });
+test("rejects an invalid Booking before later rules without changing projections", async () => {
+  await withTestServer(
+    {
+      now: () => new Date("2026-01-01T10:45:00.000Z"),
+      fixture: createRejectionFixture(),
+    },
+    async (baseUrl) => {
+      const before = await getBookingProjections(baseUrl, "booking-type-1");
+      const response = await postBooking(baseUrl, {
+        bookingTypeId: "missing",
+        timeSlotStart: "2026-01-01T10:15:00.000Z",
+        timeSlotEnd: "2026-01-01T10:45:00.000Z",
+        guestName: "Guest",
+        // The previous custom validator accepted spaces in the local part.
+        guestEmail: "guest name@example.com",
+      });
 
-  assert.equal(response.status, 400);
-  assert.deepEqual(await response.json(), {
-    code: "VALIDATION_FAILED",
-    message: "Invalid booking",
-  });
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), {
+        code: "VALIDATION_FAILED",
+        message: "Invalid booking",
+      });
+      const after = await getBookingProjections(baseUrl, "booking-type-1");
+      assert.deepEqual(after.timeSlots, before.timeSlots);
+      assert.deepEqual(after.upcomingBookings, before.upcomingBookings);
+    },
+  );
+});
+
+test("rejects a missing Booking Type before later Time Slot rules without changing projections", async () => {
+  await withTestServer(
+    {
+      now: () => new Date("2026-01-01T10:45:00.000Z"),
+      fixture: createRejectionFixture(),
+    },
+    async (baseUrl) => {
+      const before = await getBookingProjections(baseUrl, "booking-type-1");
+      const response = await postBooking(baseUrl, {
+        bookingTypeId: "missing",
+        // Relative to the control Booking Type, this is off-grid, past, and
+        // overlaps booking-1. Missing Booking Type must still win.
+        timeSlotStart: "2026-01-01T10:15:00.000Z",
+        timeSlotEnd: "2026-01-01T10:45:00.000Z",
+        guestName: "Guest",
+        guestEmail: "guest@example.com",
+      });
+
+      assert.equal(response.status, 404);
+      assert.deepEqual(await response.json(), {
+        code: "BOOKING_TYPE_NOT_FOUND",
+        message: "Booking type not found",
+      });
+      const after = await getBookingProjections(baseUrl, "booking-type-1");
+      assert.deepEqual(after.timeSlots, before.timeSlots);
+      assert.deepEqual(after.upcomingBookings, before.upcomingBookings);
+    },
+  );
+});
+
+test("rejects an off-grid Time Slot before past and conflict rules without changing projections", async () => {
+  await withTestServer(
+    {
+      now: () => new Date("2026-01-01T10:45:00.000Z"),
+      fixture: createRejectionFixture(),
+    },
+    async (baseUrl) => {
+      const before = await getBookingProjections(baseUrl, "booking-type-1");
+      const response = await postBooking(baseUrl, {
+        bookingTypeId: "booking-type-1",
+        // This interval is also past and overlaps booking-1.
+        timeSlotStart: "2026-01-01T10:15:00.000Z",
+        timeSlotEnd: "2026-01-01T10:45:00.000Z",
+        guestName: "Guest",
+        guestEmail: "guest@example.com",
+      });
+
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), {
+        code: "SLOT_NOT_ON_GRID",
+        message: "Time slot is not on the booking grid",
+      });
+      const after = await getBookingProjections(baseUrl, "booking-type-1");
+      assert.deepEqual(after.timeSlots, before.timeSlots);
+      assert.deepEqual(after.upcomingBookings, before.upcomingBookings);
+    },
+  );
+});
+
+test("rejects a past Time Slot before the conflict rule without changing projections", async () => {
+  await withTestServer(
+    {
+      now: () => new Date("2026-01-01T10:45:00.000Z"),
+      fixture: createRejectionFixture(),
+    },
+    async (baseUrl) => {
+      const before = await getBookingProjections(baseUrl, "booking-type-1");
+      const response = await postBooking(baseUrl, {
+        bookingTypeId: "booking-type-1",
+        // This is a grid-aligned interval that also overlaps booking-1.
+        timeSlotStart: "2026-01-01T10:00:00.000Z",
+        timeSlotEnd: "2026-01-01T10:30:00.000Z",
+        guestName: "Guest",
+        guestEmail: "guest@example.com",
+      });
+
+      assert.equal(response.status, 400);
+      assert.deepEqual(await response.json(), {
+        code: "SLOT_IN_PAST",
+        message: "Time slot is in the past",
+      });
+      const after = await getBookingProjections(baseUrl, "booking-type-1");
+      assert.deepEqual(after.timeSlots, before.timeSlots);
+      assert.deepEqual(after.upcomingBookings, before.upcomingBookings);
+    },
+  );
+});
+
+test("rejects an unavailable Time Slot without changing projections", async () => {
+  await withTestServer(
+    {
+      now: () => new Date("2026-01-01T08:00:00.000Z"),
+      fixture: createRejectionFixture(),
+    },
+    async (baseUrl) => {
+      const before = await getBookingProjections(baseUrl, "booking-type-1");
+      const response = await postBooking(baseUrl, {
+        bookingTypeId: "booking-type-1",
+        // This future grid interval overlaps booking-1 on the Owner's Calendar.
+        timeSlotStart: "2026-01-01T10:30:00.000Z",
+        timeSlotEnd: "2026-01-01T11:00:00.000Z",
+        guestName: "Guest",
+        guestEmail: "guest@example.com",
+      });
+
+      assert.equal(response.status, 409);
+      assert.deepEqual(await response.json(), {
+        code: "SLOT_NOT_AVAILABLE",
+        message: "Time slot is not available",
+      });
+      const after = await getBookingProjections(baseUrl, "booking-type-1");
+      assert.deepEqual(after.timeSlots, before.timeSlots);
+      assert.deepEqual(after.upcomingBookings, before.upcomingBookings);
+    },
+  );
 });
 
 test("creates a booking and makes intersecting slots unavailable globally", async () => {
@@ -295,59 +489,6 @@ test("creates a booking and makes intersecting slots unavailable globally", asyn
       ).available,
       false,
     );
-  } finally {
-    server.close();
-  }
-});
-
-test("enforces booking validation order and does not persist rejected requests", async () => {
-  const server = createApp({
-    now: () => new Date("2026-01-01T10:45:00.000Z"),
-    fixture: createFixture(),
-  }).listen(0);
-
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const baseUrl = `http://127.0.0.1:${port}`;
-    const requestBooking = async (body: unknown) =>
-      fetch(`${baseUrl}/bookings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    const valid = {
-      bookingTypeId: "booking-type-1",
-      timeSlotStart: "2026-01-01T10:30:00.000Z",
-      timeSlotEnd: "2026-01-01T11:00:00.000Z",
-      guestName: "Sam Guest",
-      guestEmail: "sam@example.com",
-    };
-
-    const invalidEmailResponse = await requestBooking({
-      ...valid,
-      guestEmail: "a@.b.c",
-    });
-    assert.equal(invalidEmailResponse.status, 400);
-    assert.equal((await invalidEmailResponse.json()).code, "VALIDATION_FAILED");
-    assert.equal(
-      (await requestBooking({ ...valid, bookingTypeId: "missing" })).status,
-      404,
-    );
-    assert.equal((await requestBooking(valid)).status, 400);
-    assert.equal(
-      (
-        await requestBooking({
-          ...valid,
-          timeSlotStart: "2026-01-01T10:45:00.000Z",
-          timeSlotEnd: "2026-01-01T11:15:00.000Z",
-        })
-      ).status,
-      400,
-    );
-
-    const bookingsResponse = await fetch(`${baseUrl}/owner/bookings`);
-    assert.deepEqual((await bookingsResponse.json()).items, []);
   } finally {
     server.close();
   }
