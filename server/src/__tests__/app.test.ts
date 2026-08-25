@@ -62,10 +62,11 @@ test("createApp serves requests through a real ephemeral server", async () => {
 async function requestApp(
   request: RequestInfo | URL,
   init?: RequestInit,
+  fixture = createFixture(),
 ): Promise<Response> {
   const server = createApp({
     now: () => new Date("2026-01-01T00:00:00.000Z"),
-    fixture: createFixture(),
+    fixture,
   }).listen(0);
 
   try {
@@ -799,4 +800,41 @@ test("rejects incoherent fixture identifiers and booking type references", () =>
     () => createApp({ now: () => new Date(), fixture: missingBookingType }),
     /references missing Booking Type: missing/,
   );
+});
+
+test("contains unexpected application-boundary failures and logs their cause once", async () => {
+  const fixture = createFixture();
+  fixture.bookings.push({
+    id: "booking-invalid-interval",
+    bookingTypeId: "booking-type-1",
+    timeSlot: {
+      id: "invalid-slot",
+      startTime: "not-a-date",
+      endTime: "2026-01-01T10:30:00.000Z",
+      available: false,
+    },
+    guest: { name: "Fixture Guest", email: "fixture@example.com" },
+  });
+  const originalConsoleError = console.error;
+  const errors: unknown[][] = [];
+  console.error = (...arguments_) => errors.push(arguments_);
+
+  try {
+    const response = await requestApp(
+      "/booking-types/booking-type-1/slots",
+      undefined,
+      fixture,
+    );
+
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      code: "INTERNAL_ERROR",
+      message: "Internal server error",
+    });
+    assert.equal(errors.length, 1);
+    assert.ok(errors[0][0] instanceof RangeError);
+    assert.match((errors[0][0] as Error).message, /valid start before its end/);
+  } finally {
+    console.error = originalConsoleError;
+  }
 });

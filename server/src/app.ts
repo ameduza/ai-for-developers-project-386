@@ -7,6 +7,7 @@ import express, {
 import { z } from "zod";
 import { InMemoryRepository, type Fixture } from "./repository.js";
 import { listTimeSlots } from "./availability.js";
+import { DomainFailure, domainFailureResponse } from "./domain-failure.js";
 import { TimeInterval } from "./time-interval.js";
 import type { Error, ErrorCode } from "./generated/api-models.js";
 
@@ -76,12 +77,7 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
         : undefined;
 
     if (!bookingType) {
-      response
-        .status(404)
-        .json(
-          protocolError("BOOKING_TYPE_NOT_FOUND", "Booking type not found"),
-        );
-      return;
+      throw new DomainFailure("BOOKING_TYPE_NOT_FOUND");
     }
 
     const bookings = repository.listBookings();
@@ -141,12 +137,7 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
     const input = validation.data;
     const bookingType = repository.getBookingType(input.bookingTypeId);
     if (!bookingType) {
-      response
-        .status(404)
-        .json(
-          protocolError("BOOKING_TYPE_NOT_FOUND", "Booking type not found"),
-        );
-      return;
+      throw new DomainFailure("BOOKING_TYPE_NOT_FOUND");
     }
 
     const currentTime = now();
@@ -156,22 +147,11 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
         slot.endTime === input.timeSlotEnd,
     );
     if (!gridSlot) {
-      response
-        .status(400)
-        .json(
-          protocolError(
-            "SLOT_NOT_ON_GRID",
-            "Time slot is not on the booking grid",
-          ),
-        );
-      return;
+      throw new DomainFailure("SLOT_NOT_ON_GRID");
     }
 
     if (new Date(input.timeSlotStart).getTime() <= currentTime.getTime()) {
-      response
-        .status(400)
-        .json(protocolError("SLOT_IN_PAST", "Time slot is in the past"));
-      return;
+      throw new DomainFailure("SLOT_IN_PAST");
     }
 
     const hasConflict = repository
@@ -185,12 +165,7 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
         ),
       );
     if (hasConflict) {
-      response
-        .status(409)
-        .json(
-          protocolError("SLOT_NOT_AVAILABLE", "Time slot is not available"),
-        );
-      return;
+      throw new DomainFailure("SLOT_NOT_AVAILABLE");
     }
 
     response.status(201).json(
@@ -210,10 +185,7 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
         : undefined;
 
     if (!booking) {
-      response
-        .status(404)
-        .json(protocolError("BOOKING_NOT_FOUND", "Booking not found"));
-      return;
+      throw new DomainFailure("BOOKING_NOT_FOUND");
     }
 
     response.json(booking);
@@ -227,28 +199,37 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
         : false;
 
     if (!deleted) {
-      response
-        .status(404)
-        .json(protocolError("BOOKING_NOT_FOUND", "Booking not found"));
-      return;
+      throw new DomainFailure("BOOKING_NOT_FOUND");
     }
 
     response.status(204).send();
   });
 
-  const jsonErrorHandler: ErrorRequestHandler = (
+  const errorHandler: ErrorRequestHandler = (
     error,
     _request,
     response,
     next,
   ) => {
+    if (response.headersSent) {
+      next(error);
+      return;
+    }
     if (error instanceof SyntaxError && "body" in error) {
       response.status(400).json(validationError("Invalid JSON body"));
       return;
     }
-    next(error);
+    if (error instanceof DomainFailure) {
+      const { status, body } = domainFailureResponse(error);
+      response.status(status).json(body);
+      return;
+    }
+    console.error(error);
+    response
+      .status(500)
+      .json(protocolError("INTERNAL_ERROR", "Internal server error"));
   };
-  app.use(jsonErrorHandler);
+  app.use(errorHandler);
 
   return app;
 }
