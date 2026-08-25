@@ -162,14 +162,19 @@ test("creates a booking type and returns it in the guest list", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: "Design review",
-        description: "Review a design and identify practical improvements.",
+        title: " Design review ",
+        description: " Review a design and identify practical improvements. ",
         durationMinutes: 45,
       }),
     });
     const created = await createResponse.json();
     assert.equal(createResponse.status, 201);
     assert.match(created.id, /^booking-type-/);
+    assert.equal(created.title, " Design review ");
+    assert.equal(
+      created.description,
+      " Review a design and identify practical improvements. ",
+    );
 
     const listResponse = await fetch(`${baseUrl}/booking-types`);
     const list = await listResponse.json();
@@ -181,14 +186,17 @@ test("creates a booking type and returns it in the guest list", async () => {
   }
 });
 
-test("rejects malformed JSON and nonsensical booking type durations", async () => {
+test("rejects malformed JSON and invalid booking type bodies with stable validation errors", async () => {
   const malformedResponse = await requestApp("/owner/booking-types", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: "{",
   });
   assert.equal(malformedResponse.status, 400);
-  assert.equal((await malformedResponse.json()).code, "VALIDATION_FAILED");
+  assert.deepEqual(await malformedResponse.json(), {
+    code: "VALIDATION_FAILED",
+    message: "Invalid JSON body",
+  });
 
   const invalidResponse = await requestApp("/owner/booking-types", {
     method: "POST",
@@ -200,7 +208,44 @@ test("rejects malformed JSON and nonsensical booking type durations", async () =
     }),
   });
   assert.equal(invalidResponse.status, 400);
-  assert.equal((await invalidResponse.json()).code, "VALIDATION_FAILED");
+  assert.deepEqual(await invalidResponse.json(), {
+    code: "VALIDATION_FAILED",
+    message: "Invalid booking type",
+  });
+
+  const blankTextResponse = await requestApp("/owner/booking-types", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: "   ",
+      description: "\t",
+      durationMinutes: 30,
+    }),
+  });
+  assert.deepEqual(await blankTextResponse.json(), {
+    code: "VALIDATION_FAILED",
+    message: "Invalid booking type",
+  });
+});
+
+test("rejects invalid booking bodies without exposing validation details", async () => {
+  const response = await requestApp("/bookings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bookingTypeId: "booking-type-1",
+      timeSlotStart: "2026-01-01T10:00:00.000Z",
+      timeSlotEnd: "2026-01-01T10:30:00.000Z",
+      guestName: "Guest",
+      guestEmail: "guest name@example.com",
+    }),
+  });
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    code: "VALIDATION_FAILED",
+    message: "Invalid booking",
+  });
 });
 
 test("creates a booking and makes intersecting slots unavailable globally", async () => {
@@ -217,7 +262,7 @@ test("creates a booking and makes intersecting slots unavailable globally", asyn
       bookingTypeId: "booking-type-2",
       timeSlotStart: "2026-01-01T10:00:00.000Z",
       timeSlotEnd: "2026-01-01T11:00:00.000Z",
-      guestName: "Sam Guest",
+      guestName: "  Sam Guest  ",
       guestEmail: "sam@example.com",
     };
 
@@ -230,6 +275,7 @@ test("creates a booking and makes intersecting slots unavailable globally", asyn
     assert.equal(createResponse.status, 201);
     assert.match(created.id, /^booking-/);
     assert.equal(created.bookingType.id, booking.bookingTypeId);
+    assert.equal(created.guest.name, "Sam Guest");
     assert.deepEqual(created.timeSlot, {
       id: "slot-22c6fa6d597dde7d217adeab",
       startTime: booking.timeSlotStart,

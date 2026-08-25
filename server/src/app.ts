@@ -4,38 +4,46 @@ import express, {
   type Express,
   type Request,
 } from "express";
+import { z } from "zod";
 import { InMemoryRepository, type Fixture } from "./repository.js";
 import { listTimeSlots } from "./availability.js";
 import { TimeInterval } from "./time-interval.js";
-import type {
-  CreateBooking,
-  CreateBookingType,
-  Error,
-  ErrorCode,
-} from "./generated/api-models.js";
+import type { Error, ErrorCode } from "./generated/api-models.js";
 
 export interface CreateAppOptions {
   now: () => Date;
   fixture: Fixture;
 }
 
-function isCreateBookingTypeInput(body: unknown): body is CreateBookingType {
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return false;
-  }
+const createBookingTypeSchema = z
+  .object({
+    title: z.string().refine((value) => value.trim().length > 0),
+    description: z.string().refine((value) => value.trim().length > 0),
+    durationMinutes: z.number().int().min(15).max(480),
+  })
+  .passthrough();
 
-  const input = body as Record<string, unknown>;
-  return (
-    typeof input.title === "string" &&
-    typeof input.description === "string" &&
-    typeof input.durationMinutes === "number" &&
-    Number.isInteger(input.durationMinutes) &&
-    input.title.trim().length > 0 &&
-    input.description.trim().length > 0 &&
-    input.durationMinutes >= 15 &&
-    input.durationMinutes <= 480
-  );
-}
+const createBookingSchema = z
+  .object({
+    bookingTypeId: z.string(),
+    timeSlotStart: z.iso.datetime({ offset: true }),
+    timeSlotEnd: z.iso.datetime({ offset: true }),
+    guestName: z.string().refine((value) => value.trim().length > 0),
+    guestEmail: z.email(),
+  })
+  .passthrough()
+  .superRefine((input, context) => {
+    if (
+      new Date(input.timeSlotStart).getTime() >=
+      new Date(input.timeSlotEnd).getTime()
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["timeSlotEnd"],
+        message: "Time slot end must be after its start",
+      });
+    }
+  });
 
 function validationError(message: string): Error {
   return protocolError("VALIDATION_FAILED", message);
@@ -43,54 +51,6 @@ function validationError(message: string): Error {
 
 function protocolError(code: ErrorCode, message: string): Error {
   return { code, message };
-}
-
-function isCreateBookingInput(body: unknown): body is CreateBooking {
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return false;
-  }
-
-  const input = body as Record<string, unknown>;
-  if (
-    typeof input.bookingTypeId !== "string" ||
-    typeof input.timeSlotStart !== "string" ||
-    typeof input.timeSlotEnd !== "string" ||
-    typeof input.guestName !== "string" ||
-    typeof input.guestEmail !== "string" ||
-    input.guestName.trim().length === 0 ||
-    !isValidEmail(input.guestEmail)
-  ) {
-    return false;
-  }
-
-  function isValidEmail(email: string): boolean {
-    const [localPart, domain] = email.split("@");
-    if (
-      !localPart ||
-      !domain ||
-      email.split("@").length !== 2 ||
-      localPart.startsWith(".") ||
-      localPart.endsWith(".") ||
-      localPart.includes("..")
-    ) {
-      return false;
-    }
-
-    const labels = domain.split(".");
-    return (
-      labels.length >= 2 &&
-      labels.every((label) =>
-        /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label),
-      )
-    );
-  }
-
-  try {
-    new TimeInterval(input.timeSlotStart, input.timeSlotEnd);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function createApp({ now, fixture }: CreateAppOptions): Express {
@@ -145,12 +105,13 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
   });
 
   app.post("/owner/booking-types", (request: Request, response) => {
-    if (!isCreateBookingTypeInput(request.body)) {
+    const validation = createBookingTypeSchema.safeParse(request.body);
+    if (!validation.success) {
       response.status(400).json(validationError("Invalid booking type"));
       return;
     }
 
-    response.status(201).json(repository.createBookingType(request.body));
+    response.status(201).json(repository.createBookingType(validation.data));
   });
 
   app.get("/owner/bookings", (_request, response) => {
@@ -171,12 +132,13 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
   });
 
   app.post("/bookings", (request: Request, response) => {
-    if (!isCreateBookingInput(request.body)) {
+    const validation = createBookingSchema.safeParse(request.body);
+    if (!validation.success) {
       response.status(400).json(validationError("Invalid booking"));
       return;
     }
 
-    const input = request.body;
+    const input = validation.data;
     const bookingType = repository.getBookingType(input.bookingTypeId);
     if (!bookingType) {
       response
