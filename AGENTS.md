@@ -32,6 +32,8 @@ Agents must format every commit message according to
 <type>[optional scope][optional !]: <description>
 ```
 
+- End every commit subject with its GitHub issue reference in the form
+  `(#<issue-number>)`, for example: `fix: reject unavailable slots (#68)`.
 - Use `feat` for new features and `fix` for bug fixes. Other types permitted by
   the specification may be used when appropriate.
 - Mark breaking changes with `!` before the colon or with a
