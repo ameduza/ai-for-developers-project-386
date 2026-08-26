@@ -1,25 +1,32 @@
-import { spawnSync } from "node:child_process";
-import { rm } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { spawnSync } from 'node:child_process';
+import { rm } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const typeSpecDirectory = resolve(scriptDirectory, "..");
-const outputDirectory = resolve(typeSpecDirectory, "tsp-output");
-const repositoryDirectory = resolve(typeSpecDirectory, "..");
+const typeSpecDirectory = resolve(scriptDirectory, '..');
+const outputDirectory = resolve(typeSpecDirectory, 'tsp-output');
+const repositoryDirectory = resolve(typeSpecDirectory, '..');
+const serverOutputDirectory = resolve(
+  repositoryDirectory,
+  'server/src/generated/typespec',
+);
 const compiler = resolve(
   repositoryDirectory,
-  "node_modules/@typespec/compiler/cmd/tsp.js",
+  'node_modules/@typespec/compiler/cmd/tsp.js',
 );
 
-await rm(outputDirectory, { force: true, recursive: true });
+await Promise.all([
+  rm(outputDirectory, { force: true, recursive: true }),
+  rm(serverOutputDirectory, { force: true, recursive: true }),
+]);
 
 const result = spawnSync(
   process.execPath,
-  [compiler, "compile", typeSpecDirectory],
+  [compiler, 'compile', typeSpecDirectory],
   {
     cwd: typeSpecDirectory,
-    stdio: "inherit",
+    stdio: 'inherit',
   },
 );
 

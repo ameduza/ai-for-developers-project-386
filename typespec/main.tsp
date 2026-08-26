@@ -101,7 +101,12 @@ namespace BookingService {
     /** Create a new booking type. */
     @post
     @route("/booking-types")
-    op createBookingType(@body bookingType: CreateBookingType): BookingType;
+    op createBookingType(
+      @body bookingType: CreateBookingType,
+    ):
+      | { @statusCode statusCode: 201; @body body: BookingType; }
+      | { @statusCode statusCode: 400; @body body: Error; }
+      | { @statusCode statusCode: 500; @body body: Error; };
 
     /** View upcoming bookings across all booking types. */
     @get
@@ -120,7 +125,12 @@ namespace BookingService {
     /** List available time slots for a booking type within the next 14 days. */
     @get
     @route("/{id}/slots")
-    op listSlots(@path id: string): List<TimeSlot>;
+    op listSlots(
+      @path id: string,
+    ):
+      | { @statusCode statusCode: 200; @body body: List<TimeSlot>; }
+      | { @statusCode statusCode: 404; @body body: Error; }
+      | { @statusCode statusCode: 500; @body body: Error; };
   }
 
   @route("/bookings")

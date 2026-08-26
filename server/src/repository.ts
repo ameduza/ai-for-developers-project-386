@@ -4,12 +4,16 @@ import type {
   CreateBookingType,
   Owner,
   TimeSlot,
-} from './generated/api-models.js';
+} from './generated/typespec/src/generated/models/all/index.js';
 
 export type { Booking, BookingType, Owner, TimeSlot };
 
-export interface SeedBooking extends Omit<Booking, 'bookingType'> {
+export interface SeedBooking extends Omit<Booking, 'bookingType' | 'timeSlot'> {
   bookingTypeId: string;
+  timeSlot: Omit<TimeSlot, 'startTime' | 'endTime'> & {
+    startTime: string;
+    endTime: string;
+  };
 }
 
 export interface Seed {
@@ -57,7 +61,11 @@ function cloneBooking(booking: Booking): Booking {
   return {
     ...booking,
     bookingType: { ...booking.bookingType },
-    timeSlot: { ...booking.timeSlot },
+    timeSlot: {
+      ...booking.timeSlot,
+      startTime: new Date(booking.timeSlot.startTime),
+      endTime: new Date(booking.timeSlot.endTime),
+    },
     guest: { ...booking.guest },
   };
 }
@@ -87,7 +95,15 @@ export class InMemoryRepository implements Repository {
       }
       const { bookingTypeId, ...booking } = seedBooking;
       void bookingTypeId;
-      return cloneBooking({ ...booking, bookingType });
+      return cloneBooking({
+        ...booking,
+        bookingType,
+        timeSlot: {
+          ...booking.timeSlot,
+          startTime: new Date(booking.timeSlot.startTime),
+          endTime: new Date(booking.timeSlot.endTime),
+        },
+      });
     });
   }
 
