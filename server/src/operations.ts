@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { listTimeSlots } from './availability.js';
-import {
-  DomainFailure,
-  domainFailureResponse,
-  ProtocolError,
-  protocolError,
-} from './domain-failure.js';
+import { DomainFailure, domainFailureResponse } from './domain-failure.js';
 import { OwnerCalendar } from './owner-calendar.js';
 import type { Seed } from './repository.js';
 import { InMemoryRepository } from './repository.js';
@@ -69,12 +64,17 @@ export function createOperations({
     async createBookingType(_context, bookingType: CreateBookingType) {
       const validation = createBookingTypeSchema.safeParse(bookingType);
       if (!validation.success) {
-        throw protocolError(new DomainFailure(ErrorCode.Validation_Failed));
+        return {
+          statusCode: 400,
+          body: domainFailureResponse(
+            new DomainFailure(ErrorCode.Validation_Failed),
+          ).body,
+        };
       }
-      throw new ProtocolError(
-        201,
-        repository.createBookingType(validation.data),
-      );
+      return {
+        statusCode: 201,
+        body: repository.createBookingType(validation.data),
+      };
     },
     async listUpcomingBookings() {
       const currentTime = now().getTime();
@@ -99,14 +99,22 @@ export function createOperations({
     async listSlots(_context, bookingTypeId) {
       const bookingType = repository.getBookingType(bookingTypeId);
       if (!bookingType) {
-        throw protocolError(new DomainFailure(ErrorCode.Booking_TypeNotFound));
+        return {
+          statusCode: 404,
+          body: domainFailureResponse(
+            new DomainFailure(ErrorCode.Booking_TypeNotFound),
+          ).body,
+        };
       }
       const ownerCalendar = new OwnerCalendar(repository.listBookings());
       return {
-        items: listTimeSlots(bookingType, now()).map((slot) => ({
-          ...slot,
-          available: !ownerCalendar.hasConflict(slot),
-        })),
+        statusCode: 200,
+        body: {
+          items: listTimeSlots(bookingType, now()).map((slot) => ({
+            ...slot,
+            available: !ownerCalendar.hasConflict(slot),
+          })),
+        },
       };
     },
   };

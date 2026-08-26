@@ -4,11 +4,11 @@ import {
   Owner,
   BookingTypeList,
   BookingType,
+  Error,
   CreateBookingType,
   BookingList,
   TimeSlotList,
   Booking,
-  Error,
   CreateBooking,
 } from "./index.js";
 
@@ -30,7 +30,11 @@ export interface OwnerRoutes<Context = unknown> {
   createBookingType(
     ctx: Context,
     bookingType: CreateBookingType,
-  ): Promise<BookingType>;
+  ): Promise<
+    | { statusCode: 201; body: BookingType }
+    | { statusCode: 400; body: Error }
+    | { statusCode: 500; body: Error }
+  >;
 
   /**
    * View upcoming bookings across all booking types.
@@ -48,7 +52,14 @@ export interface BookingTypes<Context = unknown> {
   /**
    * List available time slots for a booking type within the next 14 days.
    */
-  listSlots(ctx: Context, id: string): Promise<TimeSlotList>;
+  listSlots(
+    ctx: Context,
+    id: string,
+  ): Promise<
+    | { statusCode: 200; body: TimeSlotList }
+    | { statusCode: 404; body: Error }
+    | { statusCode: 500; body: Error }
+  >;
 }
 
 /** An interface representing the operations defined in the 'BookingService.Bookings' namespace. */

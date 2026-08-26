@@ -39,6 +39,22 @@ export interface CreateBookingType {
   durationMinutes: number;
 }
 
+export interface Error {
+  code: ErrorCode;
+
+  message: string;
+}
+
+export enum ErrorCode {
+  Validation_Failed = "VALIDATION_FAILED",
+  Booking_TypeNotFound = "BOOKING_TYPE_NOT_FOUND",
+  Booking_NotFound = "BOOKING_NOT_FOUND",
+  Slot_NotAvailable = "SLOT_NOT_AVAILABLE",
+  Slot_InPast = "SLOT_IN_PAST",
+  Slot_NotOnGrid = "SLOT_NOT_ON_GRID",
+  Internal_Error = "INTERNAL_ERROR",
+}
+
 /**
  * Generic paginated list wrapper.
  */
@@ -98,22 +114,6 @@ export interface CreateBooking {
   guestName: string;
 
   guestEmail: string;
-}
-
-export interface Error {
-  code: ErrorCode;
-
-  message: string;
-}
-
-export enum ErrorCode {
-  Validation_Failed = "VALIDATION_FAILED",
-  Booking_TypeNotFound = "BOOKING_TYPE_NOT_FOUND",
-  Booking_NotFound = "BOOKING_NOT_FOUND",
-  Slot_NotAvailable = "SLOT_NOT_AVAILABLE",
-  Slot_InPast = "SLOT_IN_PAST",
-  Slot_NotOnGrid = "SLOT_NOT_ON_GRID",
-  Internal_Error = "INTERNAL_ERROR",
 }
 
 export const BookingList = {

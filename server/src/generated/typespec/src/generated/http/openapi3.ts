@@ -53,11 +53,29 @@ export const openApiDocument = {
         description: "Create a new booking type.",
         parameters: [],
         responses: {
-          "200": {
-            description: "The request has succeeded.",
+          "201": {
+            description:
+              "The request has succeeded and a new resource has been created as a result.",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/BookingType" },
+              },
+            },
+          },
+          "400": {
+            description:
+              "The server could not understand the request due to invalid syntax.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "500": {
+            description: "Server error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
@@ -155,6 +173,22 @@ export const openApiDocument = {
                   },
                   description: "Generic paginated list wrapper.",
                 },
+              },
+            },
+          },
+          "404": {
+            description: "The server cannot find the requested resource.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
+              },
+            },
+          },
+          "500": {
+            description: "Server error",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Error" },
               },
             },
           },
@@ -319,6 +353,26 @@ export const openApiDocument = {
         },
         description: "A bookable session type the owner offers.",
       },
+      ErrorCode: {
+        type: "string",
+        enum: [
+          "VALIDATION_FAILED",
+          "BOOKING_TYPE_NOT_FOUND",
+          "BOOKING_NOT_FOUND",
+          "SLOT_NOT_AVAILABLE",
+          "SLOT_IN_PAST",
+          "SLOT_NOT_ON_GRID",
+          "INTERNAL_ERROR",
+        ],
+      },
+      Error: {
+        type: "object",
+        required: ["code", "message"],
+        properties: {
+          code: { $ref: "#/components/schemas/ErrorCode" },
+          message: { type: "string" },
+        },
+      },
       CreateBookingType: {
         type: "object",
         required: ["title", "description", "durationMinutes"],
@@ -357,26 +411,6 @@ export const openApiDocument = {
         },
         description:
           "A confirmed booking made by a guest for a specific time slot.",
-      },
-      ErrorCode: {
-        type: "string",
-        enum: [
-          "VALIDATION_FAILED",
-          "BOOKING_TYPE_NOT_FOUND",
-          "BOOKING_NOT_FOUND",
-          "SLOT_NOT_AVAILABLE",
-          "SLOT_IN_PAST",
-          "SLOT_NOT_ON_GRID",
-          "INTERNAL_ERROR",
-        ],
-      },
-      Error: {
-        type: "object",
-        required: ["code", "message"],
-        properties: {
-          code: { $ref: "#/components/schemas/ErrorCode" },
-          message: { type: "string" },
-        },
       },
       CreateBooking: {
         type: "object",

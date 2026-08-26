@@ -2,8 +2,6 @@ import {
   ErrorCode,
   type Error,
 } from './generated/typespec/src/generated/models/all/index.js';
-import { HTTP_RESPONDER } from './generated/typespec/src/generated/helpers/http.js';
-import type { HttpContext } from './generated/typespec/src/generated/helpers/router.js';
 
 type DomainFailureCode =
   | ErrorCode.Validation_Failed
@@ -43,21 +41,6 @@ export class DomainFailure extends Error {
   }
 }
 
-export class ProtocolError extends Error {
-  constructor(
-    readonly status: number,
-    readonly body: unknown,
-  ) {
-    super('Protocol response');
-  }
-
-  [HTTP_RESPONDER](context: HttpContext): void {
-    context.response.statusCode = this.status;
-    context.response.setHeader('content-type', 'application/json');
-    context.response.end(JSON.stringify(this.body));
-  }
-}
-
 export function domainFailureResponse(failure: DomainFailure): {
   statusCode: 400 | 404 | 409;
   body: Error;
@@ -67,9 +50,4 @@ export function domainFailureResponse(failure: DomainFailure): {
     statusCode: response.status as 400 | 404 | 409,
     body: { code: failure.code, message: response.message },
   };
-}
-
-export function protocolError(failure: DomainFailure): ProtocolError {
-  const { statusCode, body } = domainFailureResponse(failure);
-  return new ProtocolError(statusCode, body);
 }

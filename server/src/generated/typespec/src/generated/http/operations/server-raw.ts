@@ -18,11 +18,11 @@ import {
   BookingTypeList,
   CreateBookingType,
   BookingType,
+  Error,
   BookingList,
   TimeSlotList,
   CreateBooking,
   Booking,
-  Error,
 } from "../../models/all/index.js";
 
 import { parseHeaderValueParameters } from "../../helpers/header.js";
@@ -102,7 +102,10 @@ export async function owner_routes_create_booking_type(
     __ctx_10.request.on("error", reject);
   })) as CreateBookingType;
 
-  let __result_11: BookingType;
+  let __result_11:
+    | { statusCode: 201; body: BookingType }
+    | { statusCode: 400; body: Error }
+    | { statusCode: 500; body: Error };
 
   try {
     __result_11 = await __operations_12.createBookingType(
@@ -115,8 +118,19 @@ export async function owner_routes_create_booking_type(
     } else throw e;
   }
 
-  __ctx_10.response.setHeader("content-type", "application/json");
-  __ctx_10.response.end(globalThis.JSON.stringify(__result_11));
+  if ("statusCode" in __result_11 && __result_11.statusCode === 201) {
+    __ctx_10.response.statusCode = 201;
+    __ctx_10.response.setHeader("content-type", "application/json");
+    __ctx_10.response.end(globalThis.JSON.stringify(__result_11.body));
+  } else if ("statusCode" in __result_11 && __result_11.statusCode === 400) {
+    __ctx_10.response.statusCode = 400;
+    __ctx_10.response.setHeader("content-type", "application/json");
+    __ctx_10.response.end(globalThis.JSON.stringify(__result_11.body));
+  } else if ("statusCode" in __result_11 && __result_11.statusCode === 500) {
+    __ctx_10.response.statusCode = 500;
+    __ctx_10.response.setHeader("content-type", "application/json");
+    __ctx_10.response.end(globalThis.JSON.stringify(__result_11.body));
+  }
 }
 
 export async function owner_routes_list_upcoming_bookings(
@@ -162,7 +176,10 @@ export async function booking_types_list_slots(
   __operations_26: BookingTypes,
   id: string,
 ): Promise<void> {
-  let __result_25: TimeSlotList;
+  let __result_25:
+    | { statusCode: 200; body: TimeSlotList }
+    | { statusCode: 404; body: Error }
+    | { statusCode: 500; body: Error };
 
   try {
     __result_25 = await __operations_26.listSlots(__ctx_24, id);
@@ -172,10 +189,21 @@ export async function booking_types_list_slots(
     } else throw e;
   }
 
-  __ctx_24.response.setHeader("content-type", "application/json");
-  __ctx_24.response.end(
-    globalThis.JSON.stringify(TimeSlotList.toJsonObject(__result_25)),
-  );
+  if ("statusCode" in __result_25 && __result_25.statusCode === 200) {
+    __ctx_24.response.statusCode = 200;
+    __ctx_24.response.setHeader("content-type", "application/json");
+    __ctx_24.response.end(
+      globalThis.JSON.stringify(TimeSlotList.toJsonObject(__result_25.body)),
+    );
+  } else if ("statusCode" in __result_25 && __result_25.statusCode === 404) {
+    __ctx_24.response.statusCode = 404;
+    __ctx_24.response.setHeader("content-type", "application/json");
+    __ctx_24.response.end(globalThis.JSON.stringify(__result_25.body));
+  } else if ("statusCode" in __result_25 && __result_25.statusCode === 500) {
+    __ctx_24.response.statusCode = 500;
+    __ctx_24.response.setHeader("content-type", "application/json");
+    __ctx_24.response.end(globalThis.JSON.stringify(__result_25.body));
+  }
 }
 
 export async function bookings_create(
