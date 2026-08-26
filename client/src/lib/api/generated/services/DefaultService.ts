@@ -43,6 +43,10 @@ export class DefaultService {
       path: {
         id: id,
       },
+      errors: {
+        404: `The server cannot find the requested resource.`,
+        500: `Server error`,
+      },
     });
   }
   /**
@@ -138,7 +142,7 @@ export class DefaultService {
   }
   /**
    * Create a new booking type.
-   * @returns BookingType The request has succeeded.
+   * @returns BookingType The request has succeeded and a new resource has been created as a result.
    * @throws ApiError
    */
   public static ownerRoutesCreateBookingType({
@@ -151,6 +155,10 @@ export class DefaultService {
       url: "/owner/booking-types",
       body: requestBody,
       mediaType: "application/json",
+      errors: {
+        400: `The server could not understand the request due to invalid syntax.`,
+        500: `Server error`,
+      },
     });
   }
   /**

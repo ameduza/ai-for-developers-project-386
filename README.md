@@ -10,14 +10,12 @@ The app is intentionally limited: no authentication, no personal accounts, no ex
 
 ## API contract generation
 
-`typespec/main.tsp` is the single API contract. Generating it produces both the
-OpenAPI 3.1 document used by the client and TypeSpec's Express-compatible server
-router, operation interfaces, and protocol models under `server/src/generated/typespec`.
+`typespec/main.tsp` is the single API contract. After changing it, regenerate
+the API artifacts:
 
 ```sh
-npm run build:contract
+npm run generate:api --workspace client
 ```
 
-Run this command after changing the contract, then commit the generated artifacts.
-`npm run typecheck --workspace server` regenerates the contract artifacts before
-type checking so local and CI builds use the same bindings.
+Commit the generated changes together with the contract change. CI runs the same
+command and rejects stale generated files.
