@@ -5,7 +5,7 @@ import express, {
   type Request,
 } from "express";
 import { z } from "zod";
-import { InMemoryRepository, type Fixture } from "./repository.js";
+import { InMemoryRepository, type Seed } from "./repository.js";
 import { listTimeSlots } from "./availability.js";
 import { DomainFailure, domainFailureResponse } from "./domain-failure.js";
 import { TimeInterval } from "./time-interval.js";
@@ -13,7 +13,7 @@ import type { Error, ErrorCode } from "./generated/api-models.js";
 
 export interface CreateAppOptions {
   now: () => Date;
-  fixture: Fixture;
+  seed: Seed;
 }
 
 const createBookingTypeSchema = z
@@ -54,8 +54,8 @@ function protocolError(code: ErrorCode, message: string): Error {
   return { code, message };
 }
 
-export function createApp({ now, fixture }: CreateAppOptions): Express {
-  const repository = new InMemoryRepository(fixture);
+export function createApp({ now, seed }: CreateAppOptions): Express {
+  const repository = new InMemoryRepository(seed);
 
   const app = express();
   app.use(cors({ origin: "http://localhost:5173" }));

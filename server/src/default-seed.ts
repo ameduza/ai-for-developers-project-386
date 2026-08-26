@@ -1,6 +1,6 @@
-import type { Fixture } from "./repository.js";
+import type { Seed } from "./repository.js";
 
-export const defaultFixture: Fixture = {
+export const defaultSeed: Seed = {
   owner: {
     id: "owner-1",
     name: "Alex Morgan",
