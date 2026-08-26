@@ -356,6 +356,26 @@ test('rejects an invalid Booking before later rules without changing projections
   });
 });
 
+test('rejects non-string Booking timestamps at the contract boundary', async () => {
+  const response = await requestApp('/bookings?source=test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      bookingTypeId: 'booking-type-1',
+      timeSlotStart: 0,
+      timeSlotEnd: true,
+      guestName: 'Guest',
+      guestEmail: 'guest@example.com',
+    }),
+  });
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    code: 'VALIDATION_FAILED',
+    message: 'Invalid booking',
+  });
+});
+
 test('rejects a missing Booking Type before later Time Slot rules without changing projections', async () => {
   await assertRejectedBookingIsAtomic({
     now: new Date('2026-01-01T10:45:00.000Z'),

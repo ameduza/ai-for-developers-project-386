@@ -5,7 +5,7 @@ const sourceFiles = ['src/**/*.ts'];
 
 export default typescriptEslint.config(
   {
-    ignores: ['dist/**'],
+    ignores: ['dist/**', 'src/generated/typespec/**'],
   },
   {
     files: sourceFiles,

@@ -61,8 +61,8 @@ export function listTimeSlots(
       const end = new Date(startTime + durationMs);
       slots.push({
         id: slotId(bookingType.id, start),
-        startTime: start.toISOString(),
-        endTime: end.toISOString(),
+        startTime: start,
+        endTime: end,
         available: true,
       });
     }

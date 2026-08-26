@@ -1,4 +1,5 @@
 ### Hexlet tests and linter status:
+
 [![Actions Status](https://github.com/ameduza/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/ameduza/ai-for-developers-project-386/actions)
 
 # Booking Service
@@ -7,12 +8,16 @@ A simplified Cal.com-style web application where an Owner defines Booking Types 
 
 The app is intentionally limited: no authentication, no personal accounts, no external calendar integrations. The focus is on the core booking flow and the Design First approach — defining the API contract before building the frontend and backend separately.
 
-## Server API Contract models
+## API contract generation
 
-The server consumes its protocol model types from the committed artifact generated from `typespec/main.tsp`.
+`typespec/main.tsp` is the single API contract. Generating it produces both the
+OpenAPI 3.1 document used by the client and TypeSpec's Express-compatible server
+router, operation interfaces, and protocol models under `server/src/generated/typespec`.
 
 ```sh
-npm run generate:models --workspace server
+npm run build:contract
 ```
 
-`npm run typecheck --workspace server` verifies the artifact is current without changing the working tree. Run the generation command after changing the API Contract, then commit the updated artifact.
+Run this command after changing the contract, then commit the generated artifacts.
+`npm run typecheck --workspace server` regenerates the contract artifacts before
+type checking so local and CI builds use the same bindings.

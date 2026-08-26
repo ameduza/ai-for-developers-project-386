@@ -10,10 +10,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "format:staged": "prettier --write",
-    "generate:models": "node ../typespec/scripts/generate-server-models.mjs",
-    "verify:models": "node ../typespec/scripts/generate-server-models.mjs --check",
-    "typecheck": "npm run verify:models && tsc --noEmit",
-    "test": "tsx --test src/__tests__/*.test.ts",
+    "build:contract": "npm --prefix ../typespec run build:contract",
+    "typecheck": "npm run build:contract && tsc --noEmit",
+    "test": "npm run build:contract && tsx --test src/__tests__/*.test.ts",
     "start": "tsx src/server.ts"
   },
   "dependencies": {
