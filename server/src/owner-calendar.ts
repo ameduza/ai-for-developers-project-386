@@ -1,5 +1,5 @@
-import type { Booking, TimeSlot } from "./generated/api-models.js";
-import { TimeInterval } from "./time-interval.js";
+import type { Booking, TimeSlot } from './generated/api-models.js';
+import { TimeInterval } from './time-interval.js';
 
 /** The Owner's Calendar is occupied by every Booking, regardless of its type. */
 export class OwnerCalendar {

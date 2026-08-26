@@ -47,13 +47,13 @@ export interface CreateBooking {
 }
 
 export type ErrorCode =
-  | "VALIDATION_FAILED"
-  | "BOOKING_TYPE_NOT_FOUND"
-  | "BOOKING_NOT_FOUND"
-  | "SLOT_NOT_AVAILABLE"
-  | "SLOT_IN_PAST"
-  | "SLOT_NOT_ON_GRID"
-  | "INTERNAL_ERROR";
+  | 'VALIDATION_FAILED'
+  | 'BOOKING_TYPE_NOT_FOUND'
+  | 'BOOKING_NOT_FOUND'
+  | 'SLOT_NOT_AVAILABLE'
+  | 'SLOT_IN_PAST'
+  | 'SLOT_NOT_ON_GRID'
+  | 'INTERNAL_ERROR';
 
 export interface Error {
   code: ErrorCode;

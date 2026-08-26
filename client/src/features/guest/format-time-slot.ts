@@ -1,1 +1,1 @@
-export { formatTimeSlot } from "@/lib/formatters";
+export { formatTimeSlot } from '@/lib/formatters';

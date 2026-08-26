@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import type { BookingType, TimeSlot } from "./repository.js";
+import { createHash } from 'node:crypto';
+import type { BookingType, TimeSlot } from './repository.js';
 
 const WORKDAY_START_HOUR = 9;
 const WORKDAY_END_HOUR = 17;
@@ -7,7 +7,7 @@ const BOOKING_WINDOW_DAYS = 14;
 
 function slotId(bookingTypeId: string, startTime: Date): string {
   const slotKey = `${bookingTypeId}:${startTime.toISOString()}`;
-  return `slot-${createHash("sha256").update(slotKey).digest("hex").slice(0, 24)}`;
+  return `slot-${createHash('sha256').update(slotKey).digest('hex').slice(0, 24)}`;
 }
 
 export function listTimeSlots(

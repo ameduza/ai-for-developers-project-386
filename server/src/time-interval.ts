@@ -12,7 +12,7 @@ export class TimeInterval {
       this.start.getTime() >= this.end.getTime()
     ) {
       throw new RangeError(
-        "A time interval must have a valid start before its end",
+        'A time interval must have a valid start before its end',
       );
     }
   }

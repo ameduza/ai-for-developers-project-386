@@ -1,12 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   cancelBooking,
   createBooking,
   getBooking,
   listGuestBookingTypes,
   listGuestTimeSlots,
-} from "@/lib/api/client";
-import { QUERY_KEYS } from "@/lib/constants";
+} from '@/lib/api/client';
+import { QUERY_KEYS } from '@/lib/constants';
 
 export function useGuestBookingTypesQuery() {
   return useQuery({
@@ -20,7 +20,7 @@ export function useGuestTimeSlotsQuery(bookingTypeId: string | undefined) {
     queryKey: [...QUERY_KEYS.GUEST_TIME_SLOTS, bookingTypeId],
     queryFn: () => {
       if (!bookingTypeId) {
-        throw new Error("A booking type id is required to load time slots");
+        throw new Error('A booking type id is required to load time slots');
       }
 
       return listGuestTimeSlots(bookingTypeId);
@@ -47,7 +47,7 @@ export function useBookingQuery(bookingId: string | undefined) {
     queryKey: [...QUERY_KEYS.GUEST_BOOKING, bookingId],
     queryFn: () => {
       if (!bookingId) {
-        throw new Error("A booking id is required to load a booking");
+        throw new Error('A booking id is required to load a booking');
       }
 
       return getBooking(bookingId);

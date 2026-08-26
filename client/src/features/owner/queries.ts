@@ -1,12 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getOwnerProfile,
   listOwnerBookingTypes,
   listOwnerUpcomingBookings,
   createOwnerBookingType,
-} from "@/lib/api/client";
-import type { CreateBookingType } from "@/lib/api/generated";
-import { QUERY_KEYS } from "@/lib/constants";
+} from '@/lib/api/client';
+import type { CreateBookingType } from '@/lib/api/generated';
+import { QUERY_KEYS } from '@/lib/constants';
 
 export function useOwnerProfileQuery() {
   return useQuery({

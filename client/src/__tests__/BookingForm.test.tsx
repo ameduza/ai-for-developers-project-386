@@ -1,28 +1,28 @@
-import { describe, it, before, after, afterEach } from "node:test";
-import assert from "node:assert/strict";
-import { JSDOM } from "jsdom";
+import { describe, it, before, after, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
 
-process.env.VITE_API_BASE_URL = "http://127.0.0.1:4010";
+process.env.VITE_API_BASE_URL = 'http://127.0.0.1:4010';
 
-const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
-  url: "http://localhost:5173",
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
+  url: 'http://localhost:5173',
   pretendToBeVisual: true,
 });
 
 const globalsToPatch = [
-  "window",
-  "document",
-  "navigator",
-  "HTMLElement",
-  "Node",
-  "Event",
-  "CustomEvent",
-  "URL",
-  "URLSearchParams",
-  "fetch",
-  "Request",
-  "Response",
-  "Headers",
+  'window',
+  'document',
+  'navigator',
+  'HTMLElement',
+  'Node',
+  'Event',
+  'CustomEvent',
+  'URL',
+  'URLSearchParams',
+  'fetch',
+  'Request',
+  'Response',
+  'Headers',
 ] as const;
 
 const originals: Record<string, unknown> = {};
@@ -49,16 +49,16 @@ after(() => {
 });
 
 const { render, screen, cleanup, waitFor, fireEvent } =
-  await import("@testing-library/react");
+  await import('@testing-library/react');
 const { QueryClient, QueryClientProvider } =
-  await import("@tanstack/react-query");
-const { createMemoryRouter, RouterProvider } = await import("react-router-dom");
-const { BookingForm } = await import("../features/guest/BookingForm.js");
+  await import('@tanstack/react-query');
+const { createMemoryRouter, RouterProvider } = await import('react-router-dom');
+const { BookingForm } = await import('../features/guest/BookingForm.js');
 
 const timeSlot = {
-  id: "slot-1",
-  startTime: "2026-10-15T10:00:00Z",
-  endTime: "2026-10-15T10:30:00Z",
+  id: 'slot-1',
+  startTime: '2026-10-15T10:00:00Z',
+  endTime: '2026-10-15T10:30:00Z',
   available: true,
 };
 
@@ -70,7 +70,7 @@ function stubFetch(status: number, body: unknown) {
     fetchCalls.push({ url: String(input), init });
     return new Response(JSON.stringify(body), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
     });
   };
 }
@@ -93,17 +93,17 @@ function renderBookingForm() {
   const router = createMemoryRouter(
     [
       {
-        path: "/guest/booking-types/:bookingTypeId",
+        path: '/guest/booking-types/:bookingTypeId',
         element: (
-          <BookingForm bookingTypeId="consultation" timeSlot={timeSlot} />
+          <BookingForm bookingTypeId='consultation' timeSlot={timeSlot} />
         ),
       },
       {
-        path: "/bookings/:bookingId",
+        path: '/bookings/:bookingId',
         element: <p>Booking confirmation reached</p>,
       },
     ],
-    { initialEntries: ["/guest/booking-types/consultation"] },
+    { initialEntries: ['/guest/booking-types/consultation'] },
   );
 
   return render(
@@ -114,42 +114,42 @@ function renderBookingForm() {
 }
 
 function fillGuestDetails() {
-  fireEvent.change(screen.getByLabelText("Your name"), {
-    target: { value: "Ada Lovelace" },
+  fireEvent.change(screen.getByLabelText('Your name'), {
+    target: { value: 'Ada Lovelace' },
   });
-  fireEvent.change(screen.getByLabelText("Your email"), {
-    target: { value: "ada@example.com" },
+  fireEvent.change(screen.getByLabelText('Your email'), {
+    target: { value: 'ada@example.com' },
   });
 }
 
 function submitForm() {
-  fireEvent.click(screen.getByRole("button", { name: "Confirm booking" }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
 }
 
-describe("BookingForm", () => {
-  it("requires guest details before any request is sent", async () => {
+describe('BookingForm', () => {
+  it('requires guest details before any request is sent', async () => {
     renderBookingForm();
 
     submitForm();
 
     await waitFor(() => {
-      assert.ok(screen.getByText("Name is required"));
+      assert.ok(screen.getByText('Name is required'));
     });
-    assert.ok(screen.getByText("Email is required"));
+    assert.ok(screen.getByText('Email is required'));
     assert.equal(fetchCalls.length, 0);
   });
 
-  it("creates the booking and lands on its confirmation page", async () => {
+  it('creates the booking and lands on its confirmation page', async () => {
     stubFetch(201, {
-      id: "booking-1",
+      id: 'booking-1',
       bookingType: {
-        id: "consultation",
-        title: "Product strategy",
-        description: "Discuss the next product milestone.",
+        id: 'consultation',
+        title: 'Product strategy',
+        description: 'Discuss the next product milestone.',
         durationMinutes: 30,
       },
       timeSlot,
-      guest: { name: "Ada Lovelace", email: "ada@example.com" },
+      guest: { name: 'Ada Lovelace', email: 'ada@example.com' },
     });
     renderBookingForm();
 
@@ -157,25 +157,25 @@ describe("BookingForm", () => {
     submitForm();
 
     await waitFor(() => {
-      assert.ok(screen.getByText("Booking confirmation reached"));
+      assert.ok(screen.getByText('Booking confirmation reached'));
     });
 
-    const post = fetchCalls.find((call) => call.url.endsWith("/bookings"));
-    assert.ok(post, "Expected a POST request to /bookings");
-    assert.equal(post.init?.method, "POST");
+    const post = fetchCalls.find((call) => call.url.endsWith('/bookings'));
+    assert.ok(post, 'Expected a POST request to /bookings');
+    assert.equal(post.init?.method, 'POST');
     assert.deepEqual(JSON.parse(String(post.init?.body)), {
-      bookingTypeId: "consultation",
-      timeSlotStart: "2026-10-15T10:00:00Z",
-      timeSlotEnd: "2026-10-15T10:30:00Z",
-      guestName: "Ada Lovelace",
-      guestEmail: "ada@example.com",
+      bookingTypeId: 'consultation',
+      timeSlotStart: '2026-10-15T10:00:00Z',
+      timeSlotEnd: '2026-10-15T10:30:00Z',
+      guestName: 'Ada Lovelace',
+      guestEmail: 'ada@example.com',
     });
   });
 
-  it("surfaces a 400 validation response as an inline field error", async () => {
+  it('surfaces a 400 validation response as an inline field error', async () => {
     stubFetch(400, {
-      code: "validation_error",
-      message: "guestEmail must be a valid email address",
+      code: 'validation_error',
+      message: 'guestEmail must be a valid email address',
     });
     renderBookingForm();
 
@@ -183,19 +183,19 @@ describe("BookingForm", () => {
     submitForm();
 
     await waitFor(() => {
-      assert.ok(screen.getByText("guestEmail must be a valid email address"));
+      assert.ok(screen.getByText('guestEmail must be a valid email address'));
     });
     assert.equal(
-      (screen.getByLabelText("Your email") as HTMLInputElement).value,
-      "ada@example.com",
+      (screen.getByLabelText('Your email') as HTMLInputElement).value,
+      'ada@example.com',
     );
-    assert.equal(screen.queryByText("Booking confirmation reached"), null);
+    assert.equal(screen.queryByText('Booking confirmation reached'), null);
   });
 
-  it("keeps guest details and shows an availability message on 409", async () => {
+  it('keeps guest details and shows an availability message on 409', async () => {
     stubFetch(409, {
-      code: "slot_taken",
-      message: "Time slot is no longer available",
+      code: 'slot_taken',
+      message: 'Time slot is no longer available',
     });
     renderBookingForm();
 
@@ -206,20 +206,20 @@ describe("BookingForm", () => {
       assert.ok(screen.getByText(/no longer available/i));
     });
     assert.equal(
-      (screen.getByLabelText("Your name") as HTMLInputElement).value,
-      "Ada Lovelace",
+      (screen.getByLabelText('Your name') as HTMLInputElement).value,
+      'Ada Lovelace',
     );
     assert.equal(
-      (screen.getByLabelText("Your email") as HTMLInputElement).value,
-      "ada@example.com",
+      (screen.getByLabelText('Your email') as HTMLInputElement).value,
+      'ada@example.com',
     );
-    assert.equal(screen.queryByText("Booking confirmation reached"), null);
+    assert.equal(screen.queryByText('Booking confirmation reached'), null);
   });
 
-  it("shows an inline error when the request fails without a response", async () => {
+  it('shows an inline error when the request fails without a response', async () => {
     fetchCalls.length = 0;
     globalThis.fetch = async () => {
-      throw new TypeError("Network request failed");
+      throw new TypeError('Network request failed');
     };
     renderBookingForm();
 
@@ -228,9 +228,9 @@ describe("BookingForm", () => {
 
     await waitFor(() => {
       assert.ok(
-        screen.getByText("Could not create the booking. Please try again."),
+        screen.getByText('Could not create the booking. Please try again.'),
       );
     });
-    assert.equal(screen.queryByText("Booking confirmation reached"), null);
+    assert.equal(screen.queryByText('Booking confirmation reached'), null);
   });
 });
