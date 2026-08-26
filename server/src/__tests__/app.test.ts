@@ -519,7 +519,7 @@ test("creates a booking and makes intersecting slots unavailable globally", asyn
   );
 });
 
-test("allows abutting bookings but rejects overlapping bookings across types", async () => {
+test("allows abutting bookings but rejects overlapping bookings across Booking Types", async () => {
   await withTestServer(
     { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
     async (baseUrl) => {
@@ -551,16 +551,21 @@ test("allows abutting bookings but rejects overlapping bookings across types", a
         ).status,
         201,
       );
-      assert.equal(
-        (await create("2026-01-01T11:00:00.000Z", "2026-01-01T11:30:00.000Z"))
-          .status,
-        201,
+      const adjacentResponse = await create(
+        "2026-01-01T11:00:00.000Z",
+        "2026-01-01T11:30:00.000Z",
       );
-      assert.equal(
-        (await create("2026-01-01T10:30:00.000Z", "2026-01-01T11:00:00.000Z"))
-          .status,
-        409,
+      assert.equal(adjacentResponse.status, 201);
+
+      const overlapResponse = await create(
+        "2026-01-01T10:30:00.000Z",
+        "2026-01-01T11:00:00.000Z",
       );
+      assert.equal(overlapResponse.status, 409);
+      assert.deepEqual(await overlapResponse.json(), {
+        code: "SLOT_NOT_AVAILABLE",
+        message: "Time slot is not available",
+      });
     },
   );
 });
