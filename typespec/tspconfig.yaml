@@ -4,7 +4,7 @@ emit:
 options:
   "@typespec/openapi3":
     emitter-output-dir: "{output-dir}/schema"
-    file-type: json
+    file-type: yaml
     openapi-versions:
       - 3.1.0
 # entrypoint: main.tsp                           # Main TypeSpec file (default: main.tsp)

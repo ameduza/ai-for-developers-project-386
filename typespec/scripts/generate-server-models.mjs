@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse } from "yaml";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const typeSpecDirectory = resolve(scriptDirectory, "..");
@@ -81,8 +82,8 @@ async function generateModels() {
       throw new Error("TypeSpec compilation failed.");
     }
 
-    const openApi = JSON.parse(
-      await readFile(join(temporaryOutputDirectory, "schema/openapi.json"), "utf8"),
+    const openApi = parse(
+      await readFile(join(temporaryOutputDirectory, "schema/openapi.yaml"), "utf8"),
     );
     return renderModels(openApi);
   } finally {
