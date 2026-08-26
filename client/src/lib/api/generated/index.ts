@@ -12,6 +12,7 @@ export type { BookingType } from "./models/BookingType";
 export type { CreateBooking } from "./models/CreateBooking";
 export type { CreateBookingType } from "./models/CreateBookingType";
 export type { Error } from "./models/Error";
+export type { ErrorCode } from "./models/ErrorCode";
 export type { Guest } from "./models/Guest";
 export type { Owner } from "./models/Owner";
 export type { TimeSlot } from "./models/TimeSlot";

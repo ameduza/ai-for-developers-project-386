@@ -36,7 +36,7 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
   } = useForm<CreateBookingFormData>({
     resolver: zodResolver(createBookingSchema),
     defaultValues: {
-      eventTypeId: bookingTypeId,
+      bookingTypeId,
       slotStart: timeSlot.startTime,
       slotEnd: timeSlot.endTime,
       guestName: "",
@@ -46,7 +46,13 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
 
   const onSubmit = async (data: CreateBookingFormData) => {
     try {
-      const booking = await mutation.mutateAsync(data);
+      const booking = await mutation.mutateAsync({
+        bookingTypeId: data.bookingTypeId,
+        timeSlotStart: data.slotStart,
+        timeSlotEnd: data.slotEnd,
+        guestName: data.guestName,
+        guestEmail: data.guestEmail,
+      });
       navigate(`/bookings/${booking.id}`);
     } catch (error) {
       if (!(error instanceof ApiError)) {

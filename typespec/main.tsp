@@ -54,15 +54,25 @@ model Booking {
 }
 
 model CreateBooking {
-  eventTypeId: string;
-  slotStart: utcDateTime;
-  slotEnd: utcDateTime;
+  bookingTypeId: string;
+  timeSlotStart: utcDateTime;
+  timeSlotEnd: utcDateTime;
   guestName: string;
   guestEmail: string;
 }
 
+enum ErrorCode {
+  VALIDATION_FAILED,
+  BOOKING_TYPE_NOT_FOUND,
+  BOOKING_NOT_FOUND,
+  SLOT_NOT_AVAILABLE,
+  SLOT_IN_PAST,
+  SLOT_NOT_ON_GRID,
+  INTERNAL_ERROR,
+}
+
 model Error {
-  code: string;
+  code: ErrorCode;
   message: string;
 }
 
