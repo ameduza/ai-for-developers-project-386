@@ -141,23 +141,25 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
     }
 
     const currentTime = now();
+    const requestedStartTime = new Date(input.timeSlotStart).getTime();
+    const requestedEndTime = new Date(input.timeSlotEnd).getTime();
     const gridSlot = listTimeSlots(bookingType, currentTime, true).find(
       (slot) =>
-        slot.startTime === input.timeSlotStart &&
-        slot.endTime === input.timeSlotEnd,
+        new Date(slot.startTime).getTime() === requestedStartTime &&
+        new Date(slot.endTime).getTime() === requestedEndTime,
     );
     if (!gridSlot) {
       throw new DomainFailure("SLOT_NOT_ON_GRID");
     }
 
-    if (new Date(input.timeSlotStart).getTime() <= currentTime.getTime()) {
+    if (new Date(gridSlot.startTime).getTime() <= currentTime.getTime()) {
       throw new DomainFailure("SLOT_IN_PAST");
     }
 
     const hasConflict = repository
       .listBookings()
       .some((booking) =>
-        new TimeInterval(input.timeSlotStart, input.timeSlotEnd).intersects(
+        new TimeInterval(gridSlot.startTime, gridSlot.endTime).intersects(
           new TimeInterval(
             booking.timeSlot.startTime,
             booking.timeSlot.endTime,

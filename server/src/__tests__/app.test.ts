@@ -397,6 +397,44 @@ test("rejects an off-grid Time Slot before past and conflict rules without chang
   });
 });
 
+test("accepts equivalent Time Slot precision and offsets with canonical grid values", async () => {
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const requests = [
+        {
+          start: "2026-01-01T09:00:00Z",
+          end: "2026-01-01T09:30:00Z",
+          canonicalStart: "2026-01-01T09:00:00.000Z",
+          canonicalEnd: "2026-01-01T09:30:00.000Z",
+        },
+        {
+          start: "2026-01-01T11:00:00+01:00",
+          end: "2026-01-01T11:30:00+01:00",
+          canonicalStart: "2026-01-01T10:00:00.000Z",
+          canonicalEnd: "2026-01-01T10:30:00.000Z",
+        },
+      ];
+
+      for (const request of requests) {
+        const response = await postBooking(baseUrl, {
+          bookingTypeId: "booking-type-1",
+          timeSlotStart: request.start,
+          timeSlotEnd: request.end,
+          guestName: "Guest",
+          guestEmail: "guest@example.com",
+        });
+
+        assert.equal(response.status, 201);
+        const booking = await response.json();
+        assert.equal(booking.timeSlot.startTime, request.canonicalStart);
+        assert.equal(booking.timeSlot.endTime, request.canonicalEnd);
+        assert.equal(booking.timeSlot.available, false);
+      }
+    },
+  );
+});
+
 test("rejects a past Time Slot before the conflict rule without changing projections", async () => {
   await assertRejectedBookingIsAtomic({
     now: new Date("2026-01-01T10:45:00.000Z"),
