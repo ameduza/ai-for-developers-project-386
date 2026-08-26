@@ -1,16 +1,16 @@
-import type { TimeSlot } from "@/lib/api/generated";
+import type { TimeSlot } from '@/lib/api/generated';
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  day: "numeric",
-  month: "long",
-  timeZone: "UTC",
-  year: "numeric",
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+  year: 'numeric',
 });
 
-const timeFormatter = new Intl.DateTimeFormat("en-US", {
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "UTC",
+const timeFormatter = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'UTC',
 });
 
 export function formatTimeSlot(timeSlot: TimeSlot) {

@@ -1,15 +1,15 @@
-import cors from "cors";
+import cors from 'cors';
 import express, {
   type ErrorRequestHandler,
   type Express,
   type Request,
-} from "express";
-import { z } from "zod";
-import { InMemoryRepository, type Seed } from "./repository.js";
-import { listTimeSlots } from "./availability.js";
-import { DomainFailure, domainFailureResponse } from "./domain-failure.js";
-import { OwnerCalendar } from "./owner-calendar.js";
-import type { Error, ErrorCode } from "./generated/api-models.js";
+} from 'express';
+import { z } from 'zod';
+import { InMemoryRepository, type Seed } from './repository.js';
+import { listTimeSlots } from './availability.js';
+import { DomainFailure, domainFailureResponse } from './domain-failure.js';
+import { OwnerCalendar } from './owner-calendar.js';
+import type { Error, ErrorCode } from './generated/api-models.js';
 
 export interface CreateAppOptions {
   now: () => Date;
@@ -39,15 +39,15 @@ const createBookingSchema = z
       new Date(input.timeSlotEnd).getTime()
     ) {
       context.addIssue({
-        code: "custom",
-        path: ["timeSlotEnd"],
-        message: "Time slot end must be after its start",
+        code: 'custom',
+        path: ['timeSlotEnd'],
+        message: 'Time slot end must be after its start',
       });
     }
   });
 
 function validationError(message: string): Error {
-  return protocolError("VALIDATION_FAILED", message);
+  return protocolError('VALIDATION_FAILED', message);
 }
 
 function protocolError(code: ErrorCode, message: string): Error {
@@ -58,26 +58,26 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
   const repository = new InMemoryRepository(seed);
 
   const app = express();
-  app.use(cors({ origin: "http://localhost:5173" }));
+  app.use(cors({ origin: 'http://localhost:5173' }));
   app.use(express.json());
 
-  app.get("/owner", (_request, response) => {
+  app.get('/owner', (_request, response) => {
     response.json(repository.getOwner());
   });
 
-  app.get("/booking-types", (_request, response) => {
+  app.get('/booking-types', (_request, response) => {
     response.json({ items: repository.listBookingTypes() });
   });
 
-  app.get("/booking-types/:id/slots", (request: Request, response) => {
+  app.get('/booking-types/:id/slots', (request: Request, response) => {
     const bookingTypeId = request.params.id;
     const bookingType =
-      typeof bookingTypeId === "string"
+      typeof bookingTypeId === 'string'
         ? repository.getBookingType(bookingTypeId)
         : undefined;
 
     if (!bookingType) {
-      throw new DomainFailure("BOOKING_TYPE_NOT_FOUND");
+      throw new DomainFailure('BOOKING_TYPE_NOT_FOUND');
     }
 
     const ownerCalendar = new OwnerCalendar(repository.listBookings());
@@ -89,21 +89,21 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
     });
   });
 
-  app.get("/owner/booking-types", (_request, response) => {
+  app.get('/owner/booking-types', (_request, response) => {
     response.json({ items: repository.listBookingTypes() });
   });
 
-  app.post("/owner/booking-types", (request: Request, response) => {
+  app.post('/owner/booking-types', (request: Request, response) => {
     const validation = createBookingTypeSchema.safeParse(request.body);
     if (!validation.success) {
-      response.status(400).json(validationError("Invalid booking type"));
+      response.status(400).json(validationError('Invalid booking type'));
       return;
     }
 
     response.status(201).json(repository.createBookingType(validation.data));
   });
 
-  app.get("/owner/bookings", (_request, response) => {
+  app.get('/owner/bookings', (_request, response) => {
     const currentTime = now().getTime();
     const upcomingBookings = repository
       .listBookings()
@@ -120,17 +120,17 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
     response.json({ items: upcomingBookings });
   });
 
-  app.post("/bookings", (request: Request, response) => {
+  app.post('/bookings', (request: Request, response) => {
     const validation = createBookingSchema.safeParse(request.body);
     if (!validation.success) {
-      response.status(400).json(validationError("Invalid booking"));
+      response.status(400).json(validationError('Invalid booking'));
       return;
     }
 
     const input = validation.data;
     const bookingType = repository.getBookingType(input.bookingTypeId);
     if (!bookingType) {
-      throw new DomainFailure("BOOKING_TYPE_NOT_FOUND");
+      throw new DomainFailure('BOOKING_TYPE_NOT_FOUND');
     }
 
     const currentTime = now();
@@ -142,16 +142,16 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
         new Date(slot.endTime).getTime() === requestedEndTime,
     );
     if (!gridSlot) {
-      throw new DomainFailure("SLOT_NOT_ON_GRID");
+      throw new DomainFailure('SLOT_NOT_ON_GRID');
     }
 
     if (new Date(gridSlot.startTime).getTime() <= currentTime.getTime()) {
-      throw new DomainFailure("SLOT_IN_PAST");
+      throw new DomainFailure('SLOT_IN_PAST');
     }
 
     const ownerCalendar = new OwnerCalendar(repository.listBookings());
     if (ownerCalendar.hasConflict(gridSlot)) {
-      throw new DomainFailure("SLOT_NOT_AVAILABLE");
+      throw new DomainFailure('SLOT_NOT_AVAILABLE');
     }
 
     response.status(201).json(
@@ -163,29 +163,29 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
     );
   });
 
-  app.get("/bookings/:id", (request: Request, response) => {
+  app.get('/bookings/:id', (request: Request, response) => {
     const bookingId = request.params.id;
     const booking =
-      typeof bookingId === "string"
+      typeof bookingId === 'string'
         ? repository.getBooking(bookingId)
         : undefined;
 
     if (!booking) {
-      throw new DomainFailure("BOOKING_NOT_FOUND");
+      throw new DomainFailure('BOOKING_NOT_FOUND');
     }
 
     response.json(booking);
   });
 
-  app.delete("/bookings/:id", (request: Request, response) => {
+  app.delete('/bookings/:id', (request: Request, response) => {
     const bookingId = request.params.id;
     const deleted =
-      typeof bookingId === "string"
+      typeof bookingId === 'string'
         ? repository.deleteBooking(bookingId)
         : false;
 
     if (!deleted) {
-      throw new DomainFailure("BOOKING_NOT_FOUND");
+      throw new DomainFailure('BOOKING_NOT_FOUND');
     }
 
     response.status(204).send();
@@ -201,8 +201,8 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
       next(error);
       return;
     }
-    if (error instanceof SyntaxError && "body" in error) {
-      response.status(400).json(validationError("Invalid JSON body"));
+    if (error instanceof SyntaxError && 'body' in error) {
+      response.status(400).json(validationError('Invalid JSON body'));
       return;
     }
     if (error instanceof DomainFailure) {
@@ -213,7 +213,7 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
     console.error(error);
     response
       .status(500)
-      .json(protocolError("INTERNAL_ERROR", "Internal server error"));
+      .json(protocolError('INTERNAL_ERROR', 'Internal server error'));
   };
   app.use(errorHandler);
 

@@ -1,11 +1,11 @@
-import eslint from "@eslint/js";
-import typescriptEslint from "typescript-eslint";
+import eslint from '@eslint/js';
+import typescriptEslint from 'typescript-eslint';
 
-const sourceFiles = ["src/**/*.ts"];
+const sourceFiles = ['src/**/*.ts'];
 
 export default typescriptEslint.config(
   {
-    ignores: ["dist/**"],
+    ignores: ['dist/**'],
   },
   {
     files: sourceFiles,
@@ -19,8 +19,8 @@ export default typescriptEslint.config(
     files: sourceFiles,
     languageOptions: {
       globals: {
-        console: "readonly",
-        process: "readonly",
+        console: 'readonly',
+        process: 'readonly',
       },
     },
   },

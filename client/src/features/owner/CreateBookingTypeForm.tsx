@@ -1,23 +1,23 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import {
   createBookingTypeSchema,
   type CreateBookingTypeFormData,
-} from "@/features/owner/schemas";
-import { useCreateOwnerBookingTypeMutation } from "@/features/owner/queries";
-import { TIMEOUTS } from "@/lib/constants";
+} from '@/features/owner/schemas';
+import { useCreateOwnerBookingTypeMutation } from '@/features/owner/queries';
+import { TIMEOUTS } from '@/lib/constants';
 
 export function CreateBookingTypeForm() {
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState('');
 
   const mutation = useCreateOwnerBookingTypeMutation();
   const {
@@ -28,8 +28,8 @@ export function CreateBookingTypeForm() {
   } = useForm<CreateBookingTypeFormData>({
     resolver: zodResolver(createBookingTypeSchema),
     defaultValues: {
-      title: "",
-      description: "",
+      title: '',
+      description: '',
       durationMinutes: 30,
     },
   });
@@ -37,11 +37,11 @@ export function CreateBookingTypeForm() {
   const onSubmit = async (data: CreateBookingTypeFormData) => {
     try {
       await mutation.mutateAsync(data);
-      setSuccessMessage("Booking type created successfully!");
+      setSuccessMessage('Booking type created successfully!');
       reset();
-      setTimeout(() => setSuccessMessage(""), TIMEOUTS.SUCCESS_MESSAGE);
+      setTimeout(() => setSuccessMessage(''), TIMEOUTS.SUCCESS_MESSAGE);
     } catch (error) {
-      console.error("Error creating booking type:", error);
+      console.error('Error creating booking type:', error);
     }
   };
 
@@ -54,92 +54,92 @@ export function CreateBookingTypeForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
+        <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
+          <div className='space-y-2'>
             <label
-              htmlFor="title"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              htmlFor='title'
+              className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
             >
               Title
             </label>
             <input
-              id="title"
-              type="text"
-              placeholder="e.g., Strategy Session"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("title")}
+              id='title'
+              type='text'
+              placeholder='e.g., Strategy Session'
+              className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+              {...register('title')}
               disabled={isSubmitting || mutation.isPending}
             />
             {errors.title && (
-              <p className="text-xs text-destructive">{errors.title.message}</p>
+              <p className='text-xs text-destructive'>{errors.title.message}</p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className='space-y-2'>
             <label
-              htmlFor="description"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              htmlFor='description'
+              className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
             >
               Description
             </label>
             <textarea
-              id="description"
-              placeholder="Describe what this booking type is about..."
+              id='description'
+              placeholder='Describe what this booking type is about...'
               rows={4}
-              className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("description")}
+              className='flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+              {...register('description')}
               disabled={isSubmitting || mutation.isPending}
             />
             {errors.description && (
-              <p className="text-xs text-destructive">
+              <p className='text-xs text-destructive'>
                 {errors.description.message}
               </p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className='space-y-2'>
             <label
-              htmlFor="duration"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              htmlFor='duration'
+              className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
             >
               Duration (minutes)
             </label>
             <input
-              id="duration"
-              type="number"
-              placeholder="30"
-              min="15"
-              max="480"
-              step="15"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("durationMinutes", { valueAsNumber: true })}
+              id='duration'
+              type='number'
+              placeholder='30'
+              min='15'
+              max='480'
+              step='15'
+              className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+              {...register('durationMinutes', { valueAsNumber: true })}
               disabled={isSubmitting || mutation.isPending}
             />
             {errors.durationMinutes && (
-              <p className="text-xs text-destructive">
+              <p className='text-xs text-destructive'>
                 {errors.durationMinutes.message}
               </p>
             )}
           </div>
 
           {successMessage && (
-            <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+            <div className='rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800'>
               {successMessage}
             </div>
           )}
 
           {mutation.isError && (
-            <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <div className='rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800'>
               Failed to create booking type. Please try again.
             </div>
           )}
 
           <Button
-            type="submit"
+            type='submit'
             disabled={isSubmitting || mutation.isPending}
-            className="w-full"
+            className='w-full'
           >
-            {mutation.isPending ? "Creating..." : "Create Booking Type"}
+            {mutation.isPending ? 'Creating...' : 'Create Booking Type'}
           </Button>
         </form>
       </CardContent>

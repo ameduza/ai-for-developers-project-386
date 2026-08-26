@@ -4,11 +4,11 @@ import type {
   CreateBookingType,
   Owner,
   TimeSlot,
-} from "./generated/api-models.js";
+} from './generated/api-models.js';
 
 export type { Booking, BookingType, Owner, TimeSlot };
 
-export interface SeedBooking extends Omit<Booking, "bookingType"> {
+export interface SeedBooking extends Omit<Booking, 'bookingType'> {
   bookingTypeId: string;
 }
 
@@ -25,7 +25,7 @@ export interface Repository {
   createBookingType(input: CreateBookingType): BookingType;
   listBookings(): Booking[];
   getBooking(id: string): Booking | undefined;
-  createBooking(booking: Omit<Booking, "id">): Booking;
+  createBooking(booking: Omit<Booking, 'id'>): Booking;
   deleteBooking(id: string): boolean;
 }
 
@@ -68,8 +68,8 @@ export class InMemoryRepository implements Repository {
   private readonly bookings: Booking[];
 
   constructor(seed: Seed) {
-    assertUniqueIds("Booking Type", seed.bookingTypes);
-    assertUniqueIds("Booking", seed.bookings);
+    assertUniqueIds('Booking Type', seed.bookingTypes);
+    assertUniqueIds('Booking', seed.bookings);
 
     this.owner = { ...seed.owner };
     this.bookingTypes = seed.bookingTypes.map((bookingType) => ({
@@ -109,7 +109,7 @@ export class InMemoryRepository implements Repository {
   createBookingType(input: CreateBookingType): BookingType {
     const bookingType = {
       id: nextIdentifier(
-        "booking-type",
+        'booking-type',
         this.bookingTypes.map((candidate) => candidate.id),
       ),
       ...input,
@@ -127,10 +127,10 @@ export class InMemoryRepository implements Repository {
     return booking && cloneBooking(booking);
   }
 
-  createBooking(booking: Omit<Booking, "id">): Booking {
+  createBooking(booking: Omit<Booking, 'id'>): Booking {
     const createdBooking = {
       id: nextIdentifier(
-        "booking",
+        'booking',
         this.bookings.map((candidate) => candidate.id),
       ),
       bookingType: { ...booking.bookingType },

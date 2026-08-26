@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import type { TimeSlot } from "@/lib/api/generated";
-import { useGuestTimeSlotsQuery } from "@/features/guest/queries";
-import { BookingForm } from "@/features/guest/BookingForm";
-import { formatTimeSlot } from "@/features/guest/format-time-slot";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import type { TimeSlot } from '@/lib/api/generated';
+import { useGuestTimeSlotsQuery } from '@/features/guest/queries';
+import { BookingForm } from '@/features/guest/BookingForm';
+import { formatTimeSlot } from '@/features/guest/format-time-slot';
 
 const BOOKING_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -40,7 +40,7 @@ export function GuestBookingTypePage() {
     null;
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className='max-w-3xl space-y-6'>
       <Card>
         <CardHeader>
           <CardTitle>Available time slots</CardTitle>
@@ -48,33 +48,33 @@ export function GuestBookingTypePage() {
             Choose a free time slot for booking type {bookingTypeId}.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className='space-y-4'>
           {timeSlotsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">
+            <p className='text-sm text-muted-foreground'>
               Loading available time slots...
             </p>
           ) : timeSlotsQuery.isError ? (
-            <p className="text-sm text-destructive">
+            <p className='text-sm text-destructive'>
               Could not load available time slots. Is the mock server running?
             </p>
           ) : availableTimeSlots.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className='text-sm text-muted-foreground'>
               No free time slots are available in the next 14 days.
             </p>
           ) : (
-            <ol aria-label="Available time slots" className="space-y-3">
+            <ol aria-label='Available time slots' className='space-y-3'>
               {availableTimeSlots.map((timeSlot) => (
-                <li key={timeSlot.id} className="rounded-lg border p-4">
-                  <label className="flex cursor-pointer items-center gap-3">
+                <li key={timeSlot.id} className='rounded-lg border p-4'>
+                  <label className='flex cursor-pointer items-center gap-3'>
                     <input
-                      type="radio"
-                      name="time-slot"
+                      type='radio'
+                      name='time-slot'
                       value={timeSlot.id}
                       checked={selectedSlotId === timeSlot.id}
                       onChange={() => setSelectedSlotId(timeSlot.id)}
                     />
                     <time
-                      className="text-sm font-medium text-foreground"
+                      className='text-sm font-medium text-foreground'
                       dateTime={timeSlot.startTime}
                     >
                       {formatTimeSlot(timeSlot)}
@@ -84,8 +84,8 @@ export function GuestBookingTypePage() {
               ))}
             </ol>
           )}
-          <Button asChild variant="outline">
-            <Link to="/guest">Back to guest area</Link>
+          <Button asChild variant='outline'>
+            <Link to='/guest'>Back to guest area</Link>
           </Button>
         </CardContent>
       </Card>
