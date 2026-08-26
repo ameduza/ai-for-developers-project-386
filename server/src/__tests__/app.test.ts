@@ -4,32 +4,32 @@ import type { AddressInfo } from "node:net";
 import test from "node:test";
 import { createApp } from "../app.js";
 
-type Fixture = Parameters<typeof createApp>[0]["fixture"];
+type Seed = Parameters<typeof createApp>[0]["seed"];
 
-function createFixture(): Fixture {
+function createSeed(): Seed {
   return {
     owner: {
       id: "owner-1",
       name: "Test Owner",
-      bio: "A fixture-owned profile.",
+      bio: "A seed-owned profile.",
     },
     bookingTypes: [
       {
         id: "booking-type-1",
         title: "Short call",
-        description: "A short fixture booking type.",
+        description: "A short seed booking type.",
         durationMinutes: 30,
       },
       {
         id: "booking-type-2",
         title: "Long call",
-        description: "A long fixture booking type.",
+        description: "A long seed booking type.",
         durationMinutes: 60,
       },
       {
         id: "booking-type-3",
         title: "Workshop",
-        description: "A workshop fixture booking type.",
+        description: "A workshop seed booking type.",
         durationMinutes: 90,
       },
     ],
@@ -37,9 +37,9 @@ function createFixture(): Fixture {
   };
 }
 
-function createRejectionFixture(): Fixture {
-  const fixture = createFixture();
-  fixture.bookings.push(
+function createRejectionSeed(): Seed {
+  const seed = createSeed();
+  seed.bookings.push(
     {
       id: "booking-1",
       bookingTypeId: "booking-type-2",
@@ -63,20 +63,22 @@ function createRejectionFixture(): Fixture {
       guest: { name: "Afternoon Guest", email: "afternoon@example.com" },
     },
   );
-  return fixture;
+  return seed;
 }
 
-async function withTestServer(
+async function withTestServer<T>(
   options: Parameters<typeof createApp>[0],
-  run: (baseUrl: string) => Promise<void>,
-): Promise<void> {
+  run: (baseUrl: string) => Promise<T>,
+): Promise<T> {
   const server = createApp(options).listen(0);
   try {
     await once(server, "listening");
     const { port } = server.address() as AddressInfo;
-    await run(`http://127.0.0.1:${port}`);
+    return await run(`http://127.0.0.1:${port}`);
   } finally {
-    server.close();
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
   }
 }
 
@@ -122,7 +124,7 @@ async function assertRejectedBookingIsAtomic({
   await withTestServer(
     {
       now: () => new Date(now),
-      fixture: createRejectionFixture(),
+      seed: createRejectionSeed(),
     },
     async (baseUrl) => {
       const before = await getBookingProjections(
@@ -141,108 +143,116 @@ async function assertRejectedBookingIsAtomic({
 }
 
 test("createApp serves requests through a real ephemeral server", async () => {
-  const server = createApp({
-    now: () => new Date("2026-01-01T00:00:00.000Z"),
-    fixture: createFixture(),
-  }).listen(0);
+  await withTestServer(
+    { now: () => new Date("2026-01-01T00:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/not-a-route`, {
+        headers: { Origin: "http://localhost:5173" },
+      });
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const response = await fetch(`http://127.0.0.1:${port}/not-a-route`, {
-      headers: { Origin: "http://localhost:5173" },
-    });
-
-    assert.equal(response.status, 404);
-    assert.equal(
-      response.headers.get("access-control-allow-origin"),
-      "http://localhost:5173",
-    );
-  } finally {
-    server.close();
-  }
+      assert.equal(response.status, 404);
+      assert.equal(
+        response.headers.get("access-control-allow-origin"),
+        "http://localhost:5173",
+      );
+    },
+  );
 });
 
 async function requestApp(
   request: RequestInfo | URL,
   init?: RequestInit,
-  fixture = createFixture(),
+  seed = createSeed(),
 ): Promise<Response> {
-  const server = createApp({
-    now: () => new Date("2026-01-01T00:00:00.000Z"),
-    fixture,
-  }).listen(0);
-
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    return await fetch(`http://127.0.0.1:${port}${request}`, init);
-  } finally {
-    server.close();
-  }
+  return withTestServer(
+    { now: () => new Date("2026-01-01T00:00:00.000Z"), seed },
+    (baseUrl) => fetch(`${baseUrl}${request}`, init),
+  );
 }
 
-test("lists the seeded owner and booking types", async () => {
-  const ownerResponse = await requestApp("/owner");
-  const owner = await ownerResponse.json();
-  assert.equal(owner.id, "owner-1");
+test("supports the complete cold-start Guest booking journey", async () => {
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const typesResponse = await fetch(`${baseUrl}/booking-types`);
+      const types = await typesResponse.json();
+      assert.equal(typesResponse.status, 200);
+      assert.equal(types.items.length, 3);
 
-  const typesResponse = await requestApp("/booking-types");
-  const types = await typesResponse.json();
-  assert.equal(types.items.length, 3);
-  assert.notEqual(
-    types.items[0].durationMinutes,
-    types.items[1].durationMinutes,
+      const bookingType = types.items[0];
+      const slotsResponse = await fetch(
+        `${baseUrl}/booking-types/${bookingType.id}/slots`,
+      );
+      const slots = await slotsResponse.json();
+      assert.equal(slotsResponse.status, 200);
+      const slot = slots.items.find(
+        (candidate: { available: boolean }) => candidate.available,
+      );
+      assert.ok(slot);
+
+      const createResponse = await postBooking(baseUrl, {
+        bookingTypeId: bookingType.id,
+        timeSlotStart: slot.startTime,
+        timeSlotEnd: slot.endTime,
+        guestName: "Guest",
+        guestEmail: "guest@example.com",
+      });
+      const created = await createResponse.json();
+      assert.equal(createResponse.status, 201);
+
+      const bookingResponse = await fetch(`${baseUrl}/bookings/${created.id}`);
+      assert.equal(bookingResponse.status, 200);
+      assert.deepEqual(await bookingResponse.json(), created);
+    },
   );
 });
 
 test("lists a deterministic weekday time-slot grid for a booking type", async () => {
-  const server = createApp({
-    now: () => new Date("2026-01-01T00:00:00.000Z"),
-    fixture: createFixture(),
-  }).listen(0);
+  await withTestServer(
+    { now: () => new Date("2026-01-01T00:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const firstResponse = await fetch(
+        `${baseUrl}/booking-types/booking-type-1/slots`,
+      );
+      const secondResponse = await fetch(
+        `${baseUrl}/booking-types/booking-type-1/slots`,
+      );
+      const first = await firstResponse.json();
+      const second = await secondResponse.json();
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const firstResponse = await fetch(
-      `http://127.0.0.1:${port}/booking-types/booking-type-1/slots`,
-    );
-    const secondResponse = await fetch(
-      `http://127.0.0.1:${port}/booking-types/booking-type-1/slots`,
-    );
-    const first = await firstResponse.json();
-    const second = await secondResponse.json();
-
-    assert.equal(firstResponse.status, 200);
-    assert.equal(first.items.length, 160);
-    assert.deepEqual(first.items, second.items);
-    assert.deepEqual(first.items[0], {
-      id: "slot-8ff1f83fad3326360a893ac9",
-      startTime: "2026-01-01T09:00:00.000Z",
-      endTime: "2026-01-01T09:30:00.000Z",
-      available: true,
-    });
-    assert.equal(first.items.at(-1).startTime, "2026-01-14T16:30:00.000Z");
-    assert.ok(
-      first.items.every(
-        (slot: { startTime: string; endTime: string; available: boolean }) => {
-          const start = new Date(slot.startTime);
-          const end = new Date(slot.endTime);
-          return (
-            start.getUTCDay() >= 1 &&
-            start.getUTCDay() <= 5 &&
-            start.getUTCHours() >= 9 &&
-            end.getUTCHours() <= 17 &&
-            end.getTime() - start.getTime() === 30 * 60 * 1000 &&
-            slot.available
-          );
-        },
-      ),
-    );
-  } finally {
-    server.close();
-  }
+      assert.equal(firstResponse.status, 200);
+      assert.equal(first.items.length, 160);
+      assert.deepEqual(first.items, second.items);
+      const { id: firstSlotId, ...firstSlot } = first.items[0];
+      assert.equal(typeof firstSlotId, "string");
+      assert.deepEqual(firstSlot, {
+        startTime: "2026-01-01T09:00:00.000Z",
+        endTime: "2026-01-01T09:30:00.000Z",
+        available: true,
+      });
+      assert.equal(first.items.at(-1).startTime, "2026-01-14T16:30:00.000Z");
+      assert.ok(
+        first.items.every(
+          (slot: {
+            startTime: string;
+            endTime: string;
+            available: boolean;
+          }) => {
+            const start = new Date(slot.startTime);
+            const end = new Date(slot.endTime);
+            return (
+              start.getUTCDay() >= 1 &&
+              start.getUTCDay() <= 5 &&
+              start.getUTCHours() >= 9 &&
+              end.getUTCHours() <= 17 &&
+              end.getTime() - start.getTime() === 30 * 60 * 1000 &&
+              slot.available
+            );
+          },
+        ),
+      );
+    },
+  );
 });
 
 test("returns a clear not-found error for unknown booking types", async () => {
@@ -255,40 +265,33 @@ test("returns a clear not-found error for unknown booking types", async () => {
 });
 
 test("creates a booking type and returns it in the guest list", async () => {
-  const server = createApp({
-    now: () => new Date(),
-    fixture: createFixture(),
-  }).listen(0);
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const baseUrl = `http://127.0.0.1:${port}`;
-    const createResponse = await fetch(`${baseUrl}/owner/booking-types`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: " Design review ",
-        description: " Review a design and identify practical improvements. ",
-        durationMinutes: 45,
-      }),
-    });
-    const created = await createResponse.json();
-    assert.equal(createResponse.status, 201);
-    assert.match(created.id, /^booking-type-/);
-    assert.equal(created.title, " Design review ");
-    assert.equal(
-      created.description,
-      " Review a design and identify practical improvements. ",
-    );
+  await withTestServer(
+    { now: () => new Date(), seed: createSeed() },
+    async (baseUrl) => {
+      const createResponse = await fetch(`${baseUrl}/owner/booking-types`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: " Design review ",
+          description: " Review a design and identify practical improvements. ",
+          durationMinutes: 45,
+        }),
+      });
+      const created = await createResponse.json();
+      assert.equal(createResponse.status, 201);
+      assert.equal(created.title, " Design review ");
+      assert.equal(
+        created.description,
+        " Review a design and identify practical improvements. ",
+      );
 
-    const listResponse = await fetch(`${baseUrl}/booking-types`);
-    const list = await listResponse.json();
-    assert.ok(
-      list.items.some((item: { id: string }) => item.id === created.id),
-    );
-  } finally {
-    server.close();
-  }
+      const listResponse = await fetch(`${baseUrl}/booking-types`);
+      const list = await listResponse.json();
+      assert.ok(
+        list.items.some((item: { id: string }) => item.id === created.id),
+      );
+    },
+  );
 });
 
 test("rejects malformed JSON and invalid booking type bodies with stable validation errors", async () => {
@@ -394,6 +397,44 @@ test("rejects an off-grid Time Slot before past and conflict rules without chang
   });
 });
 
+test("accepts equivalent Time Slot precision and offsets with canonical grid values", async () => {
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const requests = [
+        {
+          start: "2026-01-01T09:00:00Z",
+          end: "2026-01-01T09:30:00Z",
+          canonicalStart: "2026-01-01T09:00:00.000Z",
+          canonicalEnd: "2026-01-01T09:30:00.000Z",
+        },
+        {
+          start: "2026-01-01T11:00:00+01:00",
+          end: "2026-01-01T11:30:00+01:00",
+          canonicalStart: "2026-01-01T10:00:00.000Z",
+          canonicalEnd: "2026-01-01T10:30:00.000Z",
+        },
+      ];
+
+      for (const request of requests) {
+        const response = await postBooking(baseUrl, {
+          bookingTypeId: "booking-type-1",
+          timeSlotStart: request.start,
+          timeSlotEnd: request.end,
+          guestName: "Guest",
+          guestEmail: "guest@example.com",
+        });
+
+        assert.equal(response.status, 201);
+        const booking = await response.json();
+        assert.equal(booking.timeSlot.startTime, request.canonicalStart);
+        assert.equal(booking.timeSlot.endTime, request.canonicalEnd);
+        assert.equal(booking.timeSlot.available, false);
+      }
+    },
+  );
+});
+
 test("rejects a past Time Slot before the conflict rule without changing projections", async () => {
   await assertRejectedBookingIsAtomic({
     now: new Date("2026-01-01T10:45:00.000Z"),
@@ -435,217 +476,195 @@ test("rejects an unavailable Time Slot without changing projections", async () =
 });
 
 test("creates a booking and makes intersecting slots unavailable globally", async () => {
-  const server = createApp({
-    now: () => new Date("2026-01-01T08:00:00.000Z"),
-    fixture: createFixture(),
-  }).listen(0);
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const booking = {
+        bookingTypeId: "booking-type-2",
+        timeSlotStart: "2026-01-01T10:00:00.000Z",
+        timeSlotEnd: "2026-01-01T11:00:00.000Z",
+        guestName: "  Sam Guest  ",
+        guestEmail: "sam@example.com",
+      };
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const baseUrl = `http://127.0.0.1:${port}`;
-    const booking = {
-      bookingTypeId: "booking-type-2",
-      timeSlotStart: "2026-01-01T10:00:00.000Z",
-      timeSlotEnd: "2026-01-01T11:00:00.000Z",
-      guestName: "  Sam Guest  ",
-      guestEmail: "sam@example.com",
-    };
+      const createResponse = await fetch(`${baseUrl}/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(booking),
+      });
+      const created = await createResponse.json();
+      assert.equal(createResponse.status, 201);
+      assert.equal(created.bookingType.id, booking.bookingTypeId);
+      assert.equal(created.guest.name, "Sam Guest");
+      const { id: createdSlotId, ...createdTimeSlot } = created.timeSlot;
+      assert.equal(typeof createdSlotId, "string");
+      assert.deepEqual(createdTimeSlot, {
+        startTime: booking.timeSlotStart,
+        endTime: booking.timeSlotEnd,
+        available: false,
+      });
 
-    const createResponse = await fetch(`${baseUrl}/bookings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(booking),
-    });
-    const created = await createResponse.json();
-    assert.equal(createResponse.status, 201);
-    assert.match(created.id, /^booking-/);
-    assert.equal(created.bookingType.id, booking.bookingTypeId);
-    assert.equal(created.guest.name, "Sam Guest");
-    assert.deepEqual(created.timeSlot, {
-      id: "slot-22c6fa6d597dde7d217adeab",
-      startTime: booking.timeSlotStart,
-      endTime: booking.timeSlotEnd,
-      available: false,
-    });
-
-    const slotsResponse = await fetch(
-      `${baseUrl}/booking-types/booking-type-1/slots`,
-    );
-    const slots = await slotsResponse.json();
-    assert.equal(
-      slots.items.find(
-        (slot: { startTime: string }) =>
-          slot.startTime === "2026-01-01T10:30:00.000Z",
-      ).available,
-      false,
-    );
-  } finally {
-    server.close();
-  }
+      const slotsResponse = await fetch(
+        `${baseUrl}/booking-types/booking-type-1/slots`,
+      );
+      const slots = await slotsResponse.json();
+      assert.equal(
+        slots.items.find(
+          (slot: { startTime: string }) =>
+            slot.startTime === "2026-01-01T10:30:00.000Z",
+        ).available,
+        false,
+      );
+    },
+  );
 });
 
-test("allows abutting bookings but rejects overlapping bookings across types", async () => {
-  const server = createApp({
-    now: () => new Date("2026-01-01T08:00:00.000Z"),
-    fixture: createFixture(),
-  }).listen(0);
+test("allows abutting bookings but rejects overlapping bookings across Booking Types", async () => {
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const url = `${baseUrl}/bookings`;
+      const create = (
+        start: string,
+        end: string,
+        bookingTypeId = "booking-type-1",
+      ) =>
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            bookingTypeId,
+            timeSlotStart: start,
+            timeSlotEnd: end,
+            guestName: "Sam Guest",
+            guestEmail: "sam@example.com",
+          }),
+        });
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const url = `http://127.0.0.1:${port}/bookings`;
-    const create = (
-      start: string,
-      end: string,
-      bookingTypeId = "booking-type-1",
-    ) =>
-      fetch(url, {
+      assert.equal(
+        (
+          await create(
+            "2026-01-01T10:00:00.000Z",
+            "2026-01-01T11:00:00.000Z",
+            "booking-type-2",
+          )
+        ).status,
+        201,
+      );
+      const adjacentResponse = await create(
+        "2026-01-01T11:00:00.000Z",
+        "2026-01-01T11:30:00.000Z",
+      );
+      assert.equal(adjacentResponse.status, 201);
+
+      const overlapResponse = await create(
+        "2026-01-01T10:30:00.000Z",
+        "2026-01-01T11:00:00.000Z",
+      );
+      assert.equal(overlapResponse.status, 409);
+      assert.deepEqual(await overlapResponse.json(), {
+        code: "SLOT_NOT_AVAILABLE",
+        message: "Time slot is not available",
+      });
+    },
+  );
+});
+
+test("fetches and cancels a booking, freeing its time slot", async () => {
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const createResponse = await fetch(`${baseUrl}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingTypeId,
-          timeSlotStart: start,
-          timeSlotEnd: end,
+          bookingTypeId: "booking-type-1",
+          timeSlotStart: "2026-01-01T10:00:00.000Z",
+          timeSlotEnd: "2026-01-01T10:30:00.000Z",
           guestName: "Sam Guest",
           guestEmail: "sam@example.com",
         }),
       });
+      const created = await createResponse.json();
+      assert.equal(createResponse.status, 201);
 
-    assert.equal(
-      (
-        await create(
-          "2026-01-01T10:00:00.000Z",
-          "2026-01-01T11:00:00.000Z",
-          "booking-type-2",
-        )
-      ).status,
-      201,
-    );
-    assert.equal(
-      (await create("2026-01-01T11:00:00.000Z", "2026-01-01T11:30:00.000Z"))
-        .status,
-      201,
-    );
-    assert.equal(
-      (await create("2026-01-01T10:30:00.000Z", "2026-01-01T11:00:00.000Z"))
-        .status,
-      409,
-    );
-  } finally {
-    server.close();
-  }
-});
+      const getResponse = await fetch(`${baseUrl}/bookings/${created.id}`);
+      assert.equal(getResponse.status, 200);
+      assert.deepEqual(await getResponse.json(), created);
 
-test("fetches and cancels a booking, freeing its time slot", async () => {
-  const server = createApp({
-    now: () => new Date("2026-01-01T08:00:00.000Z"),
-    fixture: createFixture(),
-  }).listen(0);
+      const deleteResponse = await fetch(`${baseUrl}/bookings/${created.id}`, {
+        method: "DELETE",
+      });
+      assert.equal(deleteResponse.status, 204);
+      assert.equal(await deleteResponse.text(), "");
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const baseUrl = `http://127.0.0.1:${port}`;
-    const createResponse = await fetch(`${baseUrl}/bookings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bookingTypeId: "booking-type-1",
-        timeSlotStart: "2026-01-01T10:00:00.000Z",
-        timeSlotEnd: "2026-01-01T10:30:00.000Z",
-        guestName: "Sam Guest",
-        guestEmail: "sam@example.com",
-      }),
-    });
-    const created = await createResponse.json();
-    assert.equal(createResponse.status, 201);
-
-    const getResponse = await fetch(`${baseUrl}/bookings/${created.id}`);
-    assert.equal(getResponse.status, 200);
-    assert.deepEqual(await getResponse.json(), created);
-
-    const deleteResponse = await fetch(`${baseUrl}/bookings/${created.id}`, {
-      method: "DELETE",
-    });
-    assert.equal(deleteResponse.status, 204);
-    assert.equal(await deleteResponse.text(), "");
-
-    const slotsResponse = await fetch(
-      `${baseUrl}/booking-types/booking-type-1/slots`,
-    );
-    const slots = await slotsResponse.json();
-    assert.equal(
-      slots.items.find(
-        (slot: { startTime: string }) =>
-          slot.startTime === "2026-01-01T10:00:00.000Z",
-      ).available,
-      true,
-    );
-  } finally {
-    server.close();
-  }
+      const slotsResponse = await fetch(
+        `${baseUrl}/booking-types/booking-type-1/slots`,
+      );
+      const slots = await slotsResponse.json();
+      assert.equal(
+        slots.items.find(
+          (slot: { startTime: string }) =>
+            slot.startTime === "2026-01-01T10:00:00.000Z",
+        ).available,
+        true,
+      );
+    },
+  );
 });
 
 test("returns booking not found for unknown and already-cancelled bookings", async () => {
-  const server = createApp({
-    now: () => new Date("2026-01-01T08:00:00.000Z"),
-    fixture: createFixture(),
-  }).listen(0);
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed: createSeed() },
+    async (baseUrl) => {
+      const notFound = {
+        code: "BOOKING_NOT_FOUND",
+        message: "Booking not found",
+      };
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const baseUrl = `http://127.0.0.1:${port}`;
-    const notFound = {
-      code: "BOOKING_NOT_FOUND",
-      message: "Booking not found",
-    };
+      const unknownGetResponse = await fetch(`${baseUrl}/bookings/missing`);
+      assert.equal(unknownGetResponse.status, 404);
+      assert.deepEqual(await unknownGetResponse.json(), notFound);
 
-    const unknownGetResponse = await fetch(`${baseUrl}/bookings/missing`);
-    assert.equal(unknownGetResponse.status, 404);
-    assert.deepEqual(await unknownGetResponse.json(), notFound);
+      const unknownDeleteResponse = await fetch(`${baseUrl}/bookings/missing`, {
+        method: "DELETE",
+      });
+      assert.equal(unknownDeleteResponse.status, 404);
+      assert.deepEqual(await unknownDeleteResponse.json(), notFound);
 
-    const unknownDeleteResponse = await fetch(`${baseUrl}/bookings/missing`, {
-      method: "DELETE",
-    });
-    assert.equal(unknownDeleteResponse.status, 404);
-    assert.deepEqual(await unknownDeleteResponse.json(), notFound);
+      const createResponse = await fetch(`${baseUrl}/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingTypeId: "booking-type-1",
+          timeSlotStart: "2026-01-01T10:00:00.000Z",
+          timeSlotEnd: "2026-01-01T10:30:00.000Z",
+          guestName: "Sam Guest",
+          guestEmail: "sam@example.com",
+        }),
+      });
+      const created = await createResponse.json();
+      assert.equal(createResponse.status, 201);
 
-    const createResponse = await fetch(`${baseUrl}/bookings`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bookingTypeId: "booking-type-1",
-        timeSlotStart: "2026-01-01T10:00:00.000Z",
-        timeSlotEnd: "2026-01-01T10:30:00.000Z",
-        guestName: "Sam Guest",
-        guestEmail: "sam@example.com",
-      }),
-    });
-    const created = await createResponse.json();
-    assert.equal(createResponse.status, 201);
+      const firstDeleteResponse = await fetch(
+        `${baseUrl}/bookings/${created.id}`,
+        { method: "DELETE" },
+      );
+      assert.equal(firstDeleteResponse.status, 204);
 
-    const firstDeleteResponse = await fetch(
-      `${baseUrl}/bookings/${created.id}`,
-      { method: "DELETE" },
-    );
-    assert.equal(firstDeleteResponse.status, 204);
-
-    const secondDeleteResponse = await fetch(
-      `${baseUrl}/bookings/${created.id}`,
-      { method: "DELETE" },
-    );
-    assert.equal(secondDeleteResponse.status, 404);
-    assert.deepEqual(await secondDeleteResponse.json(), notFound);
-  } finally {
-    server.close();
-  }
+      const secondDeleteResponse = await fetch(
+        `${baseUrl}/bookings/${created.id}`,
+        { method: "DELETE" },
+      );
+      assert.equal(secondDeleteResponse.status, 404);
+      assert.deepEqual(await secondDeleteResponse.json(), notFound);
+    },
+  );
 });
 
 test("lists only upcoming bookings in start-time order with guest contact details", async () => {
-  const fixture = createFixture();
-  fixture.bookings.push(
+  const seed = createSeed();
+  seed.bookings.push(
     {
       id: "booking-1",
       bookingTypeId: "booking-type-1",
@@ -681,69 +700,63 @@ test("lists only upcoming bookings in start-time order with guest contact detail
     },
   );
 
-  const server = createApp({
-    now: () => new Date("2026-01-01T08:00:00.000Z"),
-    fixture,
-  }).listen(0);
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed },
+    async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/owner/bookings`);
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const response = await fetch(`http://127.0.0.1:${port}/owner/bookings`);
-
-    assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), {
-      items: [
-        {
-          id: "booking-3",
-          bookingType: fixture.bookingTypes[0],
-          timeSlot: {
-            id: "early-slot",
-            startTime: "2026-01-01T09:00:00.000Z",
-            endTime: "2026-01-01T09:30:00.000Z",
-            available: false,
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), {
+        items: [
+          {
+            id: "booking-3",
+            bookingType: seed.bookingTypes[0],
+            timeSlot: {
+              id: "early-slot",
+              startTime: "2026-01-01T09:00:00.000Z",
+              endTime: "2026-01-01T09:30:00.000Z",
+              available: false,
+            },
+            guest: { name: "Ada Lovelace", email: "ada@example.com" },
           },
-          guest: { name: "Ada Lovelace", email: "ada@example.com" },
-        },
-        {
-          id: "booking-2",
-          bookingType: fixture.bookingTypes[1],
-          timeSlot: {
-            id: "late-slot",
-            startTime: "2026-01-01T11:00:00.000Z",
-            endTime: "2026-01-01T12:00:00.000Z",
-            available: false,
+          {
+            id: "booking-2",
+            bookingType: seed.bookingTypes[1],
+            timeSlot: {
+              id: "late-slot",
+              startTime: "2026-01-01T11:00:00.000Z",
+              endTime: "2026-01-01T12:00:00.000Z",
+              available: false,
+            },
+            guest: { name: "Grace Hopper", email: "grace@example.com" },
           },
-          guest: { name: "Grace Hopper", email: "grace@example.com" },
-        },
-      ],
-    });
+        ],
+      });
 
-    assert.equal(
-      await fetch(`http://127.0.0.1:${port}/bookings/booking-2`, {
-        method: "DELETE",
-      }).then((deleteResponse) => deleteResponse.status),
-      204,
-    );
-    assert.deepEqual(
-      (
-        await (await fetch(`http://127.0.0.1:${port}/owner/bookings`)).json()
-      ).items.map((booking: { id: string }) => booking.id),
-      ["booking-3"],
-    );
-  } finally {
-    server.close();
-  }
+      assert.equal(
+        await fetch(`${baseUrl}/bookings/booking-2`, {
+          method: "DELETE",
+        }).then((deleteResponse) => deleteResponse.status),
+        204,
+      );
+      assert.deepEqual(
+        (await (await fetch(`${baseUrl}/owner/bookings`)).json()).items.map(
+          (booking: { id: string }) => booking.id,
+        ),
+        ["booking-3"],
+      );
+    },
+  );
 });
 
-test("serves normalized, sorted fixture bookings without retaining fixture references", async () => {
-  const fixture = createFixture();
-  fixture.bookings.push(
+test("serves normalized, sorted seed bookings", async () => {
+  const seed = createSeed();
+  seed.bookings.push(
     {
       id: "booking-7",
       bookingTypeId: "booking-type-2",
       timeSlot: {
-        id: "fixture-late-slot",
+        id: "seed-late-slot",
         startTime: "2026-01-01T11:00:00.000Z",
         endTime: "2026-01-01T12:00:00.000Z",
         available: false,
@@ -754,7 +767,7 @@ test("serves normalized, sorted fixture bookings without retaining fixture refer
       id: "booking-3",
       bookingTypeId: "booking-type-1",
       timeSlot: {
-        id: "fixture-early-slot",
+        id: "seed-early-slot",
         startTime: "2026-01-01T09:00:00.000Z",
         endTime: "2026-01-01T09:30:00.000Z",
         available: false,
@@ -762,181 +775,54 @@ test("serves normalized, sorted fixture bookings without retaining fixture refer
       guest: { name: "Ada Lovelace", email: "ada@example.com" },
     },
   );
-  const server = createApp({
-    now: () => new Date("2026-01-01T08:00:00.000Z"),
-    fixture,
-  }).listen(0);
-  fixture.owner.name = "Mutated owner";
-  fixture.bookingTypes[0].title = "Mutated type";
-  fixture.bookings[1].guest.name = "Mutated guest";
+  await withTestServer(
+    { now: () => new Date("2026-01-01T08:00:00.000Z"), seed },
+    async (baseUrl) => {
+      const response = await fetch(`${baseUrl}/owner/bookings`);
 
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const response = await fetch(`http://127.0.0.1:${port}/owner/bookings`);
-
-    assert.deepEqual(await response.json(), {
-      items: [
-        {
-          id: "booking-3",
-          bookingType: {
-            id: "booking-type-1",
-            title: "Short call",
-            description: "A short fixture booking type.",
-            durationMinutes: 30,
+      assert.deepEqual(await response.json(), {
+        items: [
+          {
+            id: "booking-3",
+            bookingType: {
+              id: "booking-type-1",
+              title: "Short call",
+              description: "A short seed booking type.",
+              durationMinutes: 30,
+            },
+            timeSlot: {
+              id: "seed-early-slot",
+              startTime: "2026-01-01T09:00:00.000Z",
+              endTime: "2026-01-01T09:30:00.000Z",
+              available: false,
+            },
+            guest: { name: "Ada Lovelace", email: "ada@example.com" },
           },
-          timeSlot: {
-            id: "fixture-early-slot",
-            startTime: "2026-01-01T09:00:00.000Z",
-            endTime: "2026-01-01T09:30:00.000Z",
-            available: false,
+          {
+            id: "booking-7",
+            bookingType: {
+              id: "booking-type-2",
+              title: "Long call",
+              description: "A long seed booking type.",
+              durationMinutes: 60,
+            },
+            timeSlot: {
+              id: "seed-late-slot",
+              startTime: "2026-01-01T11:00:00.000Z",
+              endTime: "2026-01-01T12:00:00.000Z",
+              available: false,
+            },
+            guest: { name: "Grace Hopper", email: "grace@example.com" },
           },
-          guest: { name: "Ada Lovelace", email: "ada@example.com" },
-        },
-        {
-          id: "booking-7",
-          bookingType: {
-            id: "booking-type-2",
-            title: "Long call",
-            description: "A long fixture booking type.",
-            durationMinutes: 60,
-          },
-          timeSlot: {
-            id: "fixture-late-slot",
-            startTime: "2026-01-01T11:00:00.000Z",
-            endTime: "2026-01-01T12:00:00.000Z",
-            available: false,
-          },
-          guest: { name: "Grace Hopper", email: "grace@example.com" },
-        },
-      ],
-    });
-    assert.equal(
-      (await (await fetch(`http://127.0.0.1:${port}/owner`)).json()).name,
-      "Test Owner",
-    );
-  } finally {
-    server.close();
-  }
-});
-
-test("allocates identifiers after sparse fixture identifiers", async () => {
-  const fixture = createFixture();
-  fixture.bookingTypes.pop();
-  fixture.bookingTypes[1].id = "booking-type-9";
-  fixture.bookings.push({
-    id: "booking-12",
-    bookingTypeId: "booking-type-1",
-    timeSlot: {
-      id: "fixture-slot",
-      startTime: "2026-01-01T10:00:00.000Z",
-      endTime: "2026-01-01T10:30:00.000Z",
-      available: false,
+        ],
+      });
     },
-    guest: { name: "Fixture Guest", email: "fixture@example.com" },
-  });
-  const server = createApp({
-    now: () => new Date("2026-01-01T08:00:00.000Z"),
-    fixture,
-  }).listen(0);
-
-  try {
-    await once(server, "listening");
-    const { port } = server.address() as AddressInfo;
-    const baseUrl = `http://127.0.0.1:${port}`;
-    const bookingType = await (
-      await fetch(`${baseUrl}/owner/booking-types`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "New type",
-          description: "Created after sparse fixture data.",
-          durationMinutes: 30,
-        }),
-      })
-    ).json();
-    const booking = await (
-      await fetch(`${baseUrl}/bookings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingTypeId: "booking-type-1",
-          timeSlotStart: "2026-01-01T10:30:00.000Z",
-          timeSlotEnd: "2026-01-01T11:00:00.000Z",
-          guestName: "New Guest",
-          guestEmail: "new@example.com",
-        }),
-      })
-    ).json();
-
-    assert.equal(bookingType.id, "booking-type-10");
-    assert.equal(booking.id, "booking-13");
-  } finally {
-    server.close();
-  }
-});
-
-test("rejects incoherent fixture identifiers and booking type references", () => {
-  const duplicateBookingTypes = createFixture();
-  duplicateBookingTypes.bookingTypes.push({
-    ...duplicateBookingTypes.bookingTypes[0],
-  });
-  assert.throws(
-    () => createApp({ now: () => new Date(), fixture: duplicateBookingTypes }),
-    /Duplicate Booking Type identifier: booking-type-1/,
-  );
-
-  const duplicateBookings = createFixture();
-  duplicateBookings.bookings.push(
-    {
-      id: "booking-1",
-      bookingTypeId: "booking-type-1",
-      timeSlot: {
-        id: "first-slot",
-        startTime: "2026-01-01T09:00:00.000Z",
-        endTime: "2026-01-01T09:30:00.000Z",
-        available: false,
-      },
-      guest: { name: "First Guest", email: "first@example.com" },
-    },
-    {
-      id: "booking-1",
-      bookingTypeId: "booking-type-1",
-      timeSlot: {
-        id: "second-slot",
-        startTime: "2026-01-01T10:00:00.000Z",
-        endTime: "2026-01-01T10:30:00.000Z",
-        available: false,
-      },
-      guest: { name: "Second Guest", email: "second@example.com" },
-    },
-  );
-  assert.throws(
-    () => createApp({ now: () => new Date(), fixture: duplicateBookings }),
-    /Duplicate Booking identifier: booking-1/,
-  );
-
-  const missingBookingType = createFixture();
-  missingBookingType.bookings.push({
-    id: "booking-1",
-    bookingTypeId: "missing",
-    timeSlot: {
-      id: "missing-type-slot",
-      startTime: "2026-01-01T09:00:00.000Z",
-      endTime: "2026-01-01T09:30:00.000Z",
-      available: false,
-    },
-    guest: { name: "Guest", email: "guest@example.com" },
-  });
-  assert.throws(
-    () => createApp({ now: () => new Date(), fixture: missingBookingType }),
-    /references missing Booking Type: missing/,
   );
 });
 
 test("contains unexpected application-boundary failures and logs their cause once", async () => {
-  const fixture = createFixture();
-  fixture.bookings.push({
+  const seed = createSeed();
+  seed.bookings.push({
     id: "booking-invalid-interval",
     bookingTypeId: "booking-type-1",
     timeSlot: {
@@ -945,7 +831,7 @@ test("contains unexpected application-boundary failures and logs their cause onc
       endTime: "2026-01-01T10:30:00.000Z",
       available: false,
     },
-    guest: { name: "Fixture Guest", email: "fixture@example.com" },
+    guest: { name: "Seed Guest", email: "seed@example.com" },
   });
   const originalConsoleError = console.error;
   const errors: unknown[][] = [];
@@ -955,7 +841,7 @@ test("contains unexpected application-boundary failures and logs their cause onc
     const response = await requestApp(
       "/booking-types/booking-type-1/slots",
       undefined,
-      fixture,
+      seed,
     );
 
     assert.equal(response.status, 500);

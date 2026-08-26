@@ -8,14 +8,14 @@ import type {
 
 export type { Booking, BookingType, Owner, TimeSlot };
 
-export interface FixtureBooking extends Omit<Booking, "bookingType"> {
+export interface SeedBooking extends Omit<Booking, "bookingType"> {
   bookingTypeId: string;
 }
 
-export interface Fixture {
+export interface Seed {
   owner: Owner;
   bookingTypes: BookingType[];
-  bookings: FixtureBooking[];
+  bookings: SeedBooking[];
 }
 
 export interface Repository {
@@ -67,25 +67,25 @@ export class InMemoryRepository implements Repository {
   private readonly bookingTypes: BookingType[];
   private readonly bookings: Booking[];
 
-  constructor(fixture: Fixture) {
-    assertUniqueIds("Booking Type", fixture.bookingTypes);
-    assertUniqueIds("Booking", fixture.bookings);
+  constructor(seed: Seed) {
+    assertUniqueIds("Booking Type", seed.bookingTypes);
+    assertUniqueIds("Booking", seed.bookings);
 
-    this.owner = { ...fixture.owner };
-    this.bookingTypes = fixture.bookingTypes.map((bookingType) => ({
+    this.owner = { ...seed.owner };
+    this.bookingTypes = seed.bookingTypes.map((bookingType) => ({
       ...bookingType,
     }));
     const bookingTypesById = new Map(
       this.bookingTypes.map((bookingType) => [bookingType.id, bookingType]),
     );
-    this.bookings = fixture.bookings.map((fixtureBooking) => {
-      const bookingType = bookingTypesById.get(fixtureBooking.bookingTypeId);
+    this.bookings = seed.bookings.map((seedBooking) => {
+      const bookingType = bookingTypesById.get(seedBooking.bookingTypeId);
       if (!bookingType) {
         throw new Error(
-          `Booking ${fixtureBooking.id} references missing Booking Type: ${fixtureBooking.bookingTypeId}`,
+          `Booking ${seedBooking.id} references missing Booking Type: ${seedBooking.bookingTypeId}`,
         );
       }
-      const { bookingTypeId, ...booking } = fixtureBooking;
+      const { bookingTypeId, ...booking } = seedBooking;
       void bookingTypeId;
       return cloneBooking({ ...booking, bookingType });
     });

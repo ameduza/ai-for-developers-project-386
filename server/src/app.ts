@@ -5,15 +5,15 @@ import express, {
   type Request,
 } from "express";
 import { z } from "zod";
-import { InMemoryRepository, type Fixture } from "./repository.js";
+import { InMemoryRepository, type Seed } from "./repository.js";
 import { listTimeSlots } from "./availability.js";
 import { DomainFailure, domainFailureResponse } from "./domain-failure.js";
-import { TimeInterval } from "./time-interval.js";
+import { OwnerCalendar } from "./owner-calendar.js";
 import type { Error, ErrorCode } from "./generated/api-models.js";
 
 export interface CreateAppOptions {
   now: () => Date;
-  fixture: Fixture;
+  seed: Seed;
 }
 
 const createBookingTypeSchema = z
@@ -54,8 +54,8 @@ function protocolError(code: ErrorCode, message: string): Error {
   return { code, message };
 }
 
-export function createApp({ now, fixture }: CreateAppOptions): Express {
-  const repository = new InMemoryRepository(fixture);
+export function createApp({ now, seed }: CreateAppOptions): Express {
+  const repository = new InMemoryRepository(seed);
 
   const app = express();
   app.use(cors({ origin: "http://localhost:5173" }));
@@ -80,18 +80,11 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
       throw new DomainFailure("BOOKING_TYPE_NOT_FOUND");
     }
 
-    const bookings = repository.listBookings();
+    const ownerCalendar = new OwnerCalendar(repository.listBookings());
     response.json({
       items: listTimeSlots(bookingType, now()).map((slot) => ({
         ...slot,
-        available: !bookings.some((booking) =>
-          new TimeInterval(slot.startTime, slot.endTime).intersects(
-            new TimeInterval(
-              booking.timeSlot.startTime,
-              booking.timeSlot.endTime,
-            ),
-          ),
-        ),
+        available: !ownerCalendar.hasConflict(slot),
       })),
     });
   });
@@ -141,30 +134,23 @@ export function createApp({ now, fixture }: CreateAppOptions): Express {
     }
 
     const currentTime = now();
+    const requestedStartTime = new Date(input.timeSlotStart).getTime();
+    const requestedEndTime = new Date(input.timeSlotEnd).getTime();
     const gridSlot = listTimeSlots(bookingType, currentTime, true).find(
       (slot) =>
-        slot.startTime === input.timeSlotStart &&
-        slot.endTime === input.timeSlotEnd,
+        new Date(slot.startTime).getTime() === requestedStartTime &&
+        new Date(slot.endTime).getTime() === requestedEndTime,
     );
     if (!gridSlot) {
       throw new DomainFailure("SLOT_NOT_ON_GRID");
     }
 
-    if (new Date(input.timeSlotStart).getTime() <= currentTime.getTime()) {
+    if (new Date(gridSlot.startTime).getTime() <= currentTime.getTime()) {
       throw new DomainFailure("SLOT_IN_PAST");
     }
 
-    const hasConflict = repository
-      .listBookings()
-      .some((booking) =>
-        new TimeInterval(input.timeSlotStart, input.timeSlotEnd).intersects(
-          new TimeInterval(
-            booking.timeSlot.startTime,
-            booking.timeSlot.endTime,
-          ),
-        ),
-      );
-    if (hasConflict) {
+    const ownerCalendar = new OwnerCalendar(repository.listBookings());
+    if (ownerCalendar.hasConflict(gridSlot)) {
       throw new DomainFailure("SLOT_NOT_AVAILABLE");
     }
 

@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ErrorCode } from './ErrorCode';
+import type { ErrorCode } from "./ErrorCode";
 export type Error = {
   code: ErrorCode;
   message: string;

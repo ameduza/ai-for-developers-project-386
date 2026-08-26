@@ -1,10 +1,10 @@
 import { createApp } from "./app.js";
-import { defaultFixture } from "./default-fixture.js";
+import { defaultSeed } from "./default-seed.js";
 
 const port = Number(process.env.PORT ?? 3000);
 const app = createApp({
   now: () => new Date(),
-  fixture: defaultFixture,
+  seed: defaultSeed,
 });
 
 app.listen(port, () => {
