@@ -19,10 +19,12 @@
   },
   "scripts": {
     "build:contract": "npm run build:contract --workspace typespec",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test:release-config && npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format:check": "npm run format:check --workspaces --if-present",
+    "check:release-config": "node scripts/check-release-config.mjs",
+    "test:release-config": "node --test scripts/check-release-config.test.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "husky": "^9.1.7",
-    "lint-staged": "^17.3.0"
+    "lint-staged": "^17.3.0",
+    "yaml": "^2.9.0"
   }
 }
