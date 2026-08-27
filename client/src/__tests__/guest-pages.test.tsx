@@ -58,6 +58,8 @@ const { GuestBookingTypePage } =
   await import('../pages/guest/GuestBookingTypePage.js');
 const { GuestBookingConfirmationPage } =
   await import('../pages/guest/GuestBookingConfirmationPage.js');
+const { HomePage } = await import('../pages/HomePage.js');
+const { ShellLayout } = await import('../app/layouts/ShellLayout.js');
 
 afterEach(() => {
   cleanup();
@@ -96,24 +98,54 @@ function renderWithProviders(ui: React.ReactNode, route = '/guest') {
   );
 }
 
+describe('public booking shell', () => {
+  it('connects the informational landing page to the Guest journey', () => {
+    const router = createMemoryRouter(
+      [
+        {
+          element: <ShellLayout />,
+          children: [{ path: '/', element: <HomePage /> }],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+
+    render(<RouterProvider router={router} />);
+
+    assert.equal(
+      screen
+        .getByRole('link', { name: 'Booking Service' })
+        .getAttribute('href'),
+      '/',
+    );
+    assert.equal(
+      screen
+        .getByRole('link', { name: 'Owner workspace' })
+        .getAttribute('href'),
+      '/owner',
+    );
+    assert.ok(
+      screen.getByRole('heading', {
+        name: 'Find a time that works for you',
+      }),
+    );
+    assert.ok(
+      screen.getByText(
+        'Choose a booking type, select an available time, and confirm your booking.',
+      ),
+    );
+    assert.equal(
+      screen.getByRole('link', { name: 'Book time slot' }).getAttribute('href'),
+      '/guest',
+    );
+    assert.equal(screen.queryByText(/scaffold/i), null);
+    assert.equal(screen.queryByText('Guest area'), null);
+    assert.equal(screen.queryByText('Owner area'), null);
+  });
+});
+
 describe('GuestLandingPage', () => {
-  it('renders the available booking types heading', () => {
-    renderWithProviders(<GuestLandingPage />);
-    assert.ok(screen.getByText('Available Booking Types'));
-  });
-
-  it('shows a description for booking types', () => {
-    renderWithProviders(<GuestLandingPage />);
-    assert.ok(screen.getByText('Select a time slot that works best for you.'));
-  });
-
-  it('displays booking types with title, description, and duration', () => {
-    renderWithProviders(<GuestLandingPage />);
-    // This test validates that the heading exists
-    assert.ok(screen.getByText(/Available Booking Types/i));
-  });
-
-  it('links a booking type to its available time slots', async () => {
+  it('presents the editorial booking type catalog', async () => {
     globalThis.fetch = async () =>
       new Response(
         JSON.stringify({
@@ -135,69 +167,102 @@ describe('GuestLandingPage', () => {
     renderWithProviders(<GuestLandingPage />);
 
     await waitFor(() => {
+      assert.ok(screen.getByRole('heading', { name: 'Choose a booking type' }));
+      assert.equal(screen.getAllByText('01').length, 2);
+      assert.ok(screen.getByText('Product strategy'));
+      assert.ok(screen.getByText('Discuss the next product milestone.'));
+      assert.ok(screen.getByText('30 min'));
       assert.equal(
-        screen.getByRole('link', { name: 'Book Now' }).getAttribute('href'),
+        screen
+          .getByRole('link', { name: 'View available times' })
+          .getAttribute('href'),
         '/guest/booking-types/consultation',
       );
     });
+    assert.equal(document.title, 'Choose a booking type | Booking Service');
+  });
+
+  it('recovers from a booking type load failure', async () => {
+    let attempts = 0;
+    globalThis.fetch = async () => {
+      attempts += 1;
+
+      if (attempts === 1) {
+        return new Response('Unavailable', { status: 503 });
+      }
+
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    };
+
+    renderWithProviders(<GuestLandingPage />);
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText('We couldn’t load the booking types. Try again.'),
+      );
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    await waitFor(() => {
+      assert.ok(screen.getByText('No booking types are available right now.'));
+    });
+    assert.equal(attempts, 2);
   });
 });
 
 describe('GuestBookingTypePage', () => {
-  it('shows the selected booking type id', () => {
-    renderWithProviders(
-      <GuestBookingTypePage />,
-      '/guest/booking-types/abc-123',
-    );
-    assert.ok(screen.getByText('Available time slots'));
-    assert.ok(screen.getByText(/abc-123/));
-  });
+  it('moves from calendar and free time selection to guest details', async () => {
+    const slotStart = '2026-09-01T10:00:00Z';
+    const slotEnd = '2026-09-01T10:30:00Z';
 
-  it('shows only free slots within the next 14 days', async () => {
-    const now = Date.now();
-    const availableTimeSlot = {
-      id: 'available-slot',
-      startTime: new Date(now + 2 * 24 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date(
-        now + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
-      ).toISOString(),
-      available: true,
-    };
-    const timeSlots = {
-      items: [
-        availableTimeSlot,
-        {
-          id: 'booked-slot',
-          startTime: new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(
-            now + 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
-          ).toISOString(),
-          available: false,
-        },
-        {
-          id: 'too-far-slot',
-          startTime: new Date(now + 15 * 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(
-            now + 15 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
-          ).toISOString(),
-          available: true,
-        },
-        {
-          id: 'past-slot',
-          startTime: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(
-            now - 24 * 60 * 60 * 1000 + 30 * 60 * 1000,
-          ).toISOString(),
-          available: true,
-        },
-      ],
-    };
+    globalThis.fetch = async (input) => {
+      const url = String(input);
 
-    globalThis.fetch = async () =>
-      new Response(JSON.stringify(timeSlots), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      if (url.endsWith('/booking-types')) {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: 'consultation',
+                title: 'Product strategy',
+                description: 'Discuss the next product milestone.',
+                durationMinutes: 30,
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: 'available-slot',
+              startTime: slotStart,
+              endTime: slotEnd,
+              available: true,
+            },
+            {
+              id: 'occupied-slot',
+              startTime: '2026-09-01T11:00:00Z',
+              endTime: '2026-09-01T11:30:00Z',
+              available: false,
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    };
 
     renderWithProviders(
       <GuestBookingTypePage />,
@@ -205,13 +270,30 @@ describe('GuestBookingTypePage', () => {
     );
 
     await waitFor(() => {
-      assert.equal(screen.getAllByRole('listitem').length, 1);
+      assert.ok(screen.getByRole('heading', { name: 'Choose a time' }));
+      assert.ok(screen.getByText('Product strategy'));
+      assert.ok(screen.getByText('30 min'));
     });
-
-    const visibleTimeSlot = screen.getAllByRole('listitem')[0];
+    assert.equal(screen.queryByText('consultation'), null);
     assert.equal(
-      visibleTimeSlot?.querySelector('time')?.getAttribute('dateTime'),
-      availableTimeSlot.startTime,
+      screen.getByRole('button', { name: 'Continue' }).hasAttribute('disabled'),
+      true,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'September 1, 2026' }));
+    assert.equal(screen.queryByText(/11:00 AM/), null);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'September 1, 2026 · 10:00 AM–10:30 AM UTC',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    assert.ok(screen.getByRole('heading', { name: 'Enter your details' }));
+    assert.ok(screen.getByText('Product strategy'));
+    assert.equal(
+      screen.getAllByText('September 1, 2026 · 10:00 AM–10:30 AM UTC').length,
+      1,
     );
   });
 
@@ -250,6 +332,25 @@ describe('GuestBookingTypePage', () => {
           }),
           {
             status: 201,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      if (String(input).endsWith('/booking-types')) {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: 'consultation',
+                title: 'Product strategy',
+                description: 'Discuss the next product milestone.',
+                durationMinutes: 30,
+              },
+            ],
+          }),
+          {
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
           },
         );
@@ -294,14 +395,15 @@ describe('GuestBookingTypePage', () => {
     );
 
     await waitFor(() => {
-      assert.ok(screen.getByRole('radio'));
+      assert.ok(screen.getByRole('button', { name: /UTC$/ }));
     });
 
-    fireEvent.click(screen.getByRole('radio'));
-    fireEvent.change(screen.getByLabelText('Your name'), {
+    fireEvent.click(screen.getByRole('button', { name: /UTC$/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.change(screen.getByLabelText('Name'), {
       target: { value: 'Ada Lovelace' },
     });
-    fireEvent.change(screen.getByLabelText('Your email'), {
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'ada@example.com' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
@@ -320,6 +422,204 @@ describe('GuestBookingTypePage', () => {
       guestName: 'Ada Lovelace',
       guestEmail: 'ada@example.com',
     });
+  });
+
+  it('returns to time selection after a conflict and preserves guest details', async () => {
+    const slots = [
+      {
+        id: 'first-slot',
+        startTime: '2026-09-01T10:00:00Z',
+        endTime: '2026-09-01T10:30:00Z',
+        available: true,
+      },
+      {
+        id: 'second-slot',
+        startTime: '2026-09-01T11:00:00Z',
+        endTime: '2026-09-01T11:30:00Z',
+        available: true,
+      },
+    ];
+
+    globalThis.fetch = async (input, init) => {
+      if (init?.method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            code: 'slot_taken',
+            message: 'Internal server wording must not be exposed',
+          }),
+          {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      if (String(input).endsWith('/booking-types')) {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: 'consultation',
+                title: 'Product strategy',
+                description: 'Discuss the next product milestone.',
+                durationMinutes: 30,
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      return new Response(JSON.stringify({ items: slots }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    };
+
+    renderWithProviders(
+      <GuestBookingTypePage />,
+      '/guest/booking-types/consultation',
+    );
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByRole('button', {
+          name: 'September 1, 2026 · 10:00 AM–10:30 AM UTC',
+        }),
+      );
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'September 1, 2026 · 10:00 AM–10:30 AM UTC',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'Ada Lovelace' },
+    });
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'ada@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText(
+          'This time is no longer available. Choose another time.',
+        ),
+      );
+    });
+    const timeHeading = screen.getByRole('heading', { name: 'Choose a time' });
+    assert.equal(document.activeElement, timeHeading);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'September 1, 2026 · 11:00 AM–11:30 AM UTC',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    assert.equal(
+      (screen.getByLabelText('Name') as HTMLInputElement).value,
+      'Ada Lovelace',
+    );
+    assert.equal(
+      (screen.getByLabelText('Email') as HTMLInputElement).value,
+      'ada@example.com',
+    );
+  });
+
+  it('offers another booking type when no free times remain', async () => {
+    globalThis.fetch = async (input) =>
+      new Response(
+        JSON.stringify(
+          String(input).endsWith('/booking-types')
+            ? {
+                items: [
+                  {
+                    id: 'consultation',
+                    title: 'Product strategy',
+                    description: 'Discuss the next product milestone.',
+                    durationMinutes: 30,
+                  },
+                ],
+              }
+            : { items: [] },
+        ),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+    renderWithProviders(
+      <GuestBookingTypePage />,
+      '/guest/booking-types/consultation',
+    );
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText('No times are available in the next 14 days.'),
+      );
+    });
+    assert.equal(
+      screen
+        .getByRole('link', { name: 'Choose another booking type' })
+        .getAttribute('href'),
+      '/guest',
+    );
+  });
+
+  it('recovers from an available times load failure', async () => {
+    let slotAttempts = 0;
+    globalThis.fetch = async (input) => {
+      if (String(input).endsWith('/booking-types')) {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: 'consultation',
+                title: 'Product strategy',
+                description: 'Discuss the next product milestone.',
+                durationMinutes: 30,
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+
+      slotAttempts += 1;
+      return slotAttempts === 1
+        ? new Response('Unavailable', { status: 503 })
+        : new Response(JSON.stringify({ items: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+    };
+
+    renderWithProviders(
+      <GuestBookingTypePage />,
+      '/guest/booking-types/consultation',
+    );
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText('We couldn’t load the available times. Try again.'),
+      );
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText('No times are available in the next 14 days.'),
+      );
+    });
+    assert.equal(slotAttempts, 2);
   });
 });
 
@@ -356,12 +656,22 @@ describe('GuestBookingConfirmationPage', () => {
     renderWithProviders(<GuestBookingConfirmationPage />, '/bookings/bk-1');
 
     await waitFor(() => {
-      assert.ok(screen.getByText('Product strategy'));
+      assert.ok(screen.getByRole('heading', { name: 'Booking confirmed' }));
     });
-    assert.ok(screen.getByText(/Discuss the next product milestone\./));
-    assert.ok(screen.getByText(/September 1, 2026/));
-    assert.ok(screen.getByText(/Ada Lovelace/));
-    assert.ok(screen.getByText(/ada@example\.com/));
+    assert.ok(screen.getByText('Name'));
+    assert.ok(screen.getByText('Ada Lovelace'));
+    assert.ok(screen.getByText('Email'));
+    assert.ok(screen.getByText('ada@example.com'));
+    assert.ok(screen.getByText('Booking type'));
+    assert.equal(screen.getAllByText('Product strategy').length, 2);
+    assert.ok(screen.getByText('Time'));
+    assert.ok(screen.getByText('September 1, 2026 · 10:00 AM–10:30 AM UTC'));
+    assert.equal(
+      screen
+        .getByRole('link', { name: 'Book another time' })
+        .getAttribute('href'),
+      '/guest',
+    );
 
     const get = requests.find((request) => request.method === 'GET');
     assert.ok(get, 'Expected a GET request for the booking');
@@ -380,7 +690,42 @@ describe('GuestBookingConfirmationPage', () => {
     await waitFor(() => {
       assert.ok(screen.getByText('Booking not found'));
     });
-    assert.ok(screen.getByText(/does not exist or may have been cancelled/));
+    assert.ok(
+      screen.getByText(
+        'This link may be invalid, or the booking may have been canceled.',
+      ),
+    );
+    assert.equal(
+      screen
+        .getByRole('link', { name: 'Go to booking page' })
+        .getAttribute('href'),
+      '/guest',
+    );
+  });
+
+  it('recovers from a booking load failure', async () => {
+    let attempts = 0;
+    globalThis.fetch = async () => {
+      attempts += 1;
+      return attempts === 1
+        ? new Response('Unavailable', { status: 503 })
+        : new Response(JSON.stringify(bookingFixture), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+    };
+
+    renderWithProviders(<GuestBookingConfirmationPage />, '/bookings/bk-1');
+
+    await waitFor(() => {
+      assert.ok(screen.getByText('We couldn’t load this booking. Try again.'));
+    });
+    assert.ok(screen.getByRole('link', { name: 'Go to booking page' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => {
+      assert.ok(screen.getByRole('heading', { name: 'Booking confirmed' }));
+    });
+    assert.equal(attempts, 2);
   });
 
   it('cancels the booking from the confirmation view', async () => {
@@ -416,12 +761,22 @@ describe('GuestBookingConfirmationPage', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, cancel it' }));
+    assert.ok(screen.getByRole('heading', { name: 'Cancel this booking?' }));
+    assert.ok(
+      screen.getByText('This time will become available for someone else.'),
+    );
+    assert.ok(screen.getByRole('button', { name: 'Keep booking' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel booking' }));
 
     await waitFor(() => {
-      assert.ok(screen.getByText('Booking cancelled'));
+      assert.ok(screen.getByRole('heading', { name: 'Booking canceled' }));
     });
-    assert.ok(screen.getByText(/This booking has been cancelled/));
+    assert.ok(
+      screen.getByText(
+        'Your booking has been canceled. This time is now available for someone else.',
+      ),
+    );
+    assert.ok(screen.getByRole('link', { name: 'Book another time' }));
 
     const refetchCount = () =>
       requests.filter((request) => request.method === 'GET').length;
@@ -429,8 +784,8 @@ describe('GuestBookingConfirmationPage', () => {
       assert.ok(refetchCount() >= 2, 'Expected the booking query to refetch');
     });
     assert.ok(
-      screen.getByText('Booking cancelled'),
-      'Cancelled confirmation must survive the post-cancel 404 refetch',
+      screen.getByText('Booking canceled'),
+      'Canceled confirmation must survive the post-cancel 404 refetch',
     );
 
     const del = requests.find((request) => request.method === 'DELETE');
