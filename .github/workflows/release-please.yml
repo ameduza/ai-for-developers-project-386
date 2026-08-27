@@ -16,9 +16,10 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         with:
+          token: ${{ secrets.GH_MCP_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-# The action defaults to GITHUB_TOKEN. Resources it creates do not trigger
-# further workflows; use a separate token only if that behavior is required.
+# Use GH_MCP_TOKEN so resources created by release-please can trigger
+# subsequent workflows.
 # Repository Settings > Actions > General must allow Actions to create PRs.
