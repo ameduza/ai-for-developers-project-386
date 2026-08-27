@@ -27,7 +27,7 @@ export function CreateBookingTypeForm() {
   });
 
   const onSubmit = async (data: CreateBookingTypeFormData) => {
-    setSuccessMessage(null);
+    setSuccessMessage('');
 
     try {
       await mutation.mutateAsync(data);
