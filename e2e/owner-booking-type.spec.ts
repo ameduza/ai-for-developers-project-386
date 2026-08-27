@@ -31,7 +31,7 @@ test('Owner can create a Booking Type and see its exact details', async ({
     .fill(String(bookingType.durationMinutes));
   await page.getByRole('button', { name: 'Create booking type' }).click();
 
-  const createdBookingType = page.locator('article').filter({
+  const createdBookingType = page.getByRole('article').filter({
     has: page.getByRole('heading', {
       name: bookingType.title,
       exact: true,
