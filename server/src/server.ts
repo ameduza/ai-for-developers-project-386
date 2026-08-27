@@ -5,6 +5,7 @@ const port = Number(process.env.PORT ?? 3000);
 const app = createApp({
   now: () => new Date(),
   seed: defaultSeed,
+  clientOrigin: process.env.CLIENT_ORIGIN,
 });
 
 app.listen(port, () => {
