@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   CalendarDays,
@@ -7,135 +7,46 @@ import {
   Clock3,
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import type { TimeSlot } from '@/lib/api/generated';
-import {
-  useGuestBookingTypesQuery,
-  useGuestTimeSlotsQuery,
-} from '@/features/guest/queries';
 import { BookingForm } from '@/features/guest/BookingForm';
+import {
+  formatMonth,
+  formatUtcDate,
+  monthCells,
+  shiftMonth,
+  utcDateKey,
+} from '@/features/guest/calendar';
 import { formatTimeSlot } from '@/features/guest/format-time-slot';
+import { useGuestBookingFlow } from '@/features/guest/use-guest-booking-flow';
 import { usePageTitle } from '@/lib/use-page-title';
 
-const BOOKING_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function isWithinBookingWindow(timeSlot: TimeSlot, now: number) {
-  const startTime = new Date(timeSlot.startTime).getTime();
-
-  return (
-    Number.isFinite(startTime) &&
-    startTime >= now &&
-    startTime <= now + BOOKING_WINDOW_MS
-  );
-}
-
-function utcDateKey(value: string | Date) {
-  const date = value instanceof Date ? value : new Date(value);
-  return [
-    date.getUTCFullYear(),
-    String(date.getUTCMonth() + 1).padStart(2, '0'),
-    String(date.getUTCDate()).padStart(2, '0'),
-  ].join('-');
-}
-
-function utcMonthKey(value: string) {
-  return value.slice(0, 7);
-}
-
-function dateFromKey(value: string) {
-  return new Date(`${value}T00:00:00Z`);
-}
-
-function formatUtcDate(value: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(dateFromKey(value));
-}
-
-function formatMonth(value: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(dateFromKey(`${value}-01`));
-}
-
-function shiftMonth(value: string, delta: number) {
-  const date = dateFromKey(`${value}-01`);
-  date.setUTCMonth(date.getUTCMonth() + delta);
-  return utcDateKey(date).slice(0, 7);
-}
-
-function monthCells(month: string) {
-  const first = dateFromKey(`${month}-01`);
-  const year = first.getUTCFullYear();
-  const monthIndex = first.getUTCMonth();
-  const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-
-  return [
-    ...Array.from<null>({ length: first.getUTCDay() }).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, index) =>
-      utcDateKey(new Date(Date.UTC(year, monthIndex, index + 1))),
-    ),
-  ];
-}
 
 export function GuestBookingTypePage() {
   const { bookingTypeId } = useParams();
-  const bookingTypesQuery = useGuestBookingTypesQuery();
-  const timeSlotsQuery = useGuestTimeSlotsQuery(bookingTypeId);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
-  const [visibleMonth, setVisibleMonth] = useState<string | null>(null);
-  const [step, setStep] = useState<'time' | 'details'>('time');
-  const [guestDetails, setGuestDetails] = useState({ name: '', email: '' });
-  const [timeConflict, setTimeConflict] = useState(false);
-  const [rejectedSlotIds, setRejectedSlotIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const flow = useGuestBookingFlow(bookingTypeId);
+  const {
+    bookingTypesQuery,
+    timeSlotsQuery,
+    bookingType,
+    setSelectedDate,
+    selectedSlotId,
+    setSelectedSlotId,
+    setVisibleMonth,
+    step,
+    setStep,
+    guestDetails,
+    timeConflict,
+    setTimeConflict,
+    availableTimeSlots,
+    slotsByDate,
+    activeDate,
+    activeMonth,
+    selectedTimeSlot,
+    activeDateSlots,
+    rejectTimeSlot,
+  } = flow;
   const timeHeadingRef = useRef<HTMLHeadingElement>(null);
   usePageTitle(step === 'details' ? 'Enter your details' : 'Choose a time');
-  const now = Date.now();
-  const bookingType = bookingTypesQuery.data?.items.find(
-    (candidate) => candidate.id === bookingTypeId,
-  );
-  const availableTimeSlots = useMemo(
-    () =>
-      (timeSlotsQuery.data?.items ?? [])
-        .filter(
-          (timeSlot) =>
-            timeSlot.available &&
-            !rejectedSlotIds.has(timeSlot.id) &&
-            isWithinBookingWindow(timeSlot, now),
-        )
-        .sort((first, second) =>
-          first.startTime.localeCompare(second.startTime),
-        ),
-    [now, rejectedSlotIds, timeSlotsQuery.data?.items],
-  );
-  const slotsByDate = useMemo(() => {
-    const grouped = new Map<string, TimeSlot[]>();
-
-    for (const timeSlot of availableTimeSlots) {
-      const key = utcDateKey(timeSlot.startTime);
-      grouped.set(key, [...(grouped.get(key) ?? []), timeSlot]);
-    }
-
-    return grouped;
-  }, [availableTimeSlots]);
-  const firstAvailableDate = slotsByDate.keys().next().value as
-    string | undefined;
-  const activeDate = selectedDate ?? firstAvailableDate ?? null;
-  const activeMonth =
-    visibleMonth ??
-    (activeDate ? utcMonthKey(activeDate) : utcDateKey(new Date()).slice(0, 7));
-  const selectedTimeSlot =
-    availableTimeSlots.find((timeSlot) => timeSlot.id === selectedSlotId) ??
-    null;
-  const activeDateSlots = activeDate ? (slotsByDate.get(activeDate) ?? []) : [];
   const isLoading = bookingTypesQuery.isLoading || timeSlotsQuery.isLoading;
 
   useEffect(() => {
@@ -149,6 +60,8 @@ export function GuestBookingTypePage() {
   }
 
   if (bookingTypesQuery.isError || timeSlotsQuery.isError) {
+    const retrying = bookingTypesQuery.isFetching || timeSlotsQuery.isFetching;
+
     return (
       <section className='guest-time-step' aria-labelledby='time-step-title'>
         <header className='guest-step-heading guest-step-heading-compact'>
@@ -164,6 +77,7 @@ export function GuestBookingTypePage() {
           <button
             className='guest-secondary-action'
             type='button'
+            disabled={retrying}
             onClick={() => {
               if (bookingTypesQuery.isError) {
                 bookingTypesQuery.refetch();
@@ -173,7 +87,7 @@ export function GuestBookingTypePage() {
               }
             }}
           >
-            Try again
+            {retrying ? 'Loading...' : 'Try again'}
           </button>
         </div>
       </section>
@@ -181,6 +95,8 @@ export function GuestBookingTypePage() {
   }
 
   if (!bookingType) {
+    const retrying = bookingTypesQuery.isFetching || timeSlotsQuery.isFetching;
+
     return (
       <div className='guest-state-block'>
         <p className='guest-state-copy guest-state-copy-error'>
@@ -189,18 +105,19 @@ export function GuestBookingTypePage() {
         <button
           className='guest-secondary-action'
           type='button'
+          disabled={retrying}
           onClick={() => {
             bookingTypesQuery.refetch();
             timeSlotsQuery.refetch();
           }}
         >
-          Try again
+          {retrying ? 'Loading...' : 'Try again'}
         </button>
       </div>
     );
   }
 
-  if (availableTimeSlots.length === 0) {
+  if (availableTimeSlots.length === 0 && !timeConflict) {
     return (
       <section className='guest-time-step' aria-labelledby='time-step-title'>
         <header className='guest-step-heading guest-step-heading-compact'>
@@ -242,16 +159,7 @@ export function GuestBookingTypePage() {
             bookingTypeId={bookingTypeId}
             timeSlot={selectedTimeSlot}
             initialGuestDetails={guestDetails}
-            onTimeUnavailable={(details) => {
-              setGuestDetails(details);
-              setRejectedSlotIds((ids) =>
-                new Set(ids).add(selectedTimeSlot.id),
-              );
-              setSelectedSlotId(null);
-              setTimeConflict(true);
-              setStep('time');
-              void timeSlotsQuery.refetch();
-            }}
+            onTimeUnavailable={rejectTimeSlot}
           />
         </div>
       </section>

@@ -34,6 +34,7 @@ export function GuestBookingConfirmationPage() {
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const isNotFound =
     bookingQuery.error instanceof ApiError && bookingQuery.error.status === 404;
+  const retrying = bookingQuery.isError && bookingQuery.isFetching;
   const pageTitle = cancelMutation.isSuccess
     ? 'Booking canceled'
     : bookingQuery.data
@@ -87,9 +88,10 @@ export function GuestBookingConfirmationPage() {
           <button
             className='guest-secondary-action'
             type='button'
+            disabled={retrying}
             onClick={() => bookingQuery.refetch()}
           >
-            Try again
+            {retrying ? 'Loading...' : 'Try again'}
           </button>
           <Link className='guest-primary-action' to='/guest'>
             Go to booking page

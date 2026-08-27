@@ -7,6 +7,7 @@ export function GuestLandingPage() {
   usePageTitle('Choose a booking type');
   const bookingTypesQuery = useGuestBookingTypesQuery();
   const bookingTypes = bookingTypesQuery.data?.items ?? [];
+  const retrying = bookingTypesQuery.isError && bookingTypesQuery.isFetching;
 
   return (
     <section className='guest-catalog' aria-labelledby='guest-catalog-title'>
@@ -29,9 +30,10 @@ export function GuestLandingPage() {
             <button
               className='guest-secondary-action'
               type='button'
+              disabled={retrying}
               onClick={() => bookingTypesQuery.refetch()}
             >
-              Try again
+              {retrying ? 'Loading...' : 'Try again'}
             </button>
           </div>
         ) : bookingTypes.length === 0 ? (

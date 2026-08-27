@@ -9,14 +9,16 @@ import {
 } from '@/features/guest/schemas';
 import { useCreateBookingMutation } from '@/features/guest/queries';
 
+export type GuestDetails = {
+  name: string;
+  email: string;
+};
+
 type BookingFormProps = {
   bookingTypeId: string;
   timeSlot: TimeSlot;
-  initialGuestDetails?: {
-    name: string;
-    email: string;
-  };
-  onTimeUnavailable?: (guestDetails: { name: string; email: string }) => void;
+  initialGuestDetails?: GuestDetails;
+  onTimeUnavailable?: (guestDetails: GuestDetails) => void;
 };
 
 export function BookingForm({

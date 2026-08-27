@@ -98,6 +98,14 @@ function renderWithProviders(ui: React.ReactNode, route = '/guest') {
   );
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 describe('public booking shell', () => {
   it('connects the informational landing page to the Guest journey', () => {
     const router = createMemoryRouter(
@@ -210,6 +218,32 @@ describe('GuestLandingPage', () => {
       assert.ok(screen.getByText('No booking types are available right now.'));
     });
     assert.equal(attempts, 2);
+  });
+
+  it('shows in-flight copy while retrying booking types', async () => {
+    const retry = deferred<Response>();
+    let attempts = 0;
+    globalThis.fetch = async () => {
+      attempts += 1;
+      return attempts === 1
+        ? new Response('Unavailable', { status: 503 })
+        : retry.promise;
+    };
+    renderWithProviders(<GuestLandingPage />);
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: 'Try again' })),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => {
+      assert.ok(screen.getByText('Loading...'));
+      assert.equal(screen.queryByRole('button', { name: 'Try again' }), null);
+    });
+    retry.resolve(
+      new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
   });
 });
 
@@ -540,6 +574,23 @@ describe('GuestBookingTypePage', () => {
       (screen.getByLabelText('Email') as HTMLInputElement).value,
       'ada@example.com',
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText(
+          'This time is no longer available. Choose another time.',
+        ),
+      );
+      assert.equal(
+        screen.queryByText('No times are available in the next 14 days.'),
+        null,
+      );
+    });
+    assert.equal(
+      document.activeElement,
+      screen.getByRole('heading', { name: 'Choose a time' }),
+    );
   });
 
   it('offers another booking type when no free times remain', async () => {
@@ -631,6 +682,50 @@ describe('GuestBookingTypePage', () => {
       );
     });
     assert.equal(slotAttempts, 2);
+  });
+
+  it('shows in-flight copy while retrying available times', async () => {
+    const retry = deferred<Response>();
+    let slotAttempts = 0;
+    globalThis.fetch = async (input) => {
+      if (String(input).endsWith('/booking-types')) {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: 'consultation',
+                title: 'Product strategy',
+                description: 'Discuss.',
+                durationMinutes: 30,
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      slotAttempts += 1;
+      return slotAttempts === 1
+        ? new Response('Unavailable', { status: 503 })
+        : retry.promise;
+    };
+    renderWithProviders(
+      <GuestBookingTypePage />,
+      '/guest/booking-types/consultation',
+    );
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: 'Try again' })),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => {
+      assert.ok(screen.getByText('Loading...'));
+      assert.equal(screen.queryByRole('button', { name: 'Try again' }), null);
+    });
+    retry.resolve(
+      new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
   });
 
   it('offers a retry action when the booking type is unavailable', async () => {
@@ -786,6 +881,32 @@ describe('GuestBookingConfirmationPage', () => {
       assert.ok(screen.getByRole('heading', { name: 'Booking confirmed' }));
     });
     assert.equal(attempts, 2);
+  });
+
+  it('shows in-flight copy while retrying a booking', async () => {
+    const retry = deferred<Response>();
+    let attempts = 0;
+    globalThis.fetch = async () => {
+      attempts += 1;
+      return attempts === 1
+        ? new Response('Unavailable', { status: 503 })
+        : retry.promise;
+    };
+    renderWithProviders(<GuestBookingConfirmationPage />, '/bookings/bk-1');
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: 'Try again' })),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => {
+      assert.ok(screen.getByText('Loading...'));
+      assert.equal(screen.queryByRole('button', { name: 'Try again' }), null);
+    });
+    retry.resolve(
+      new Response(JSON.stringify(bookingFixture), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
   });
 
   it('cancels the booking from the confirmation view', async () => {
