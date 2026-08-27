@@ -196,10 +196,11 @@ describe('OwnerDashboardPage', () => {
     );
     assert.equal(
       screen
-        .getByRole('link', { name: 'View booking page' })
+        .getByRole('link', { name: 'Guest workspace' })
         .getAttribute('href'),
       '/guest',
     );
+    assert.ok(screen.getByText('Booking service'));
     assert.ok(screen.getByRole('link', { name: 'Booking types' }));
     assert.ok(screen.getByRole('link', { name: 'Bookings' }));
     assert.equal(document.documentElement.classList.contains('dark'), true);
@@ -208,7 +209,7 @@ describe('OwnerDashboardPage', () => {
     router.dispose();
   });
 
-  it('shows the populated three-column Booking studio', async () => {
+  it('shows the populated three-column Booking service', async () => {
     renderOwnerDashboard();
 
     await waitFor(() => {

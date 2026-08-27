@@ -52,12 +52,14 @@ export function OwnerWorkspaceLayout() {
 
       <div className='pl-16'>
         <header className='flex h-14 items-center justify-between border-b border-white/10 px-6'>
-          <p className='text-sm font-semibold text-slate-200'>Booking studio</p>
+          <p className='text-sm font-semibold text-slate-200'>
+            Booking service
+          </p>
           <Link
             to='/guest'
             className='inline-flex items-center gap-2 text-xs font-medium text-slate-400 transition-colors hover:text-white'
           >
-            View booking page
+            Guest workspace
             <ArrowUpRight aria-hidden='true' className='size-3.5' />
           </Link>
         </header>

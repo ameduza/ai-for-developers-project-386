@@ -19,10 +19,7 @@ export function UpcomingBookingsList({
     <div>
       <header className='flex items-end justify-between gap-4 border-b border-white/10 pb-5'>
         <div>
-          <p className='text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500'>
-            All booking types
-          </p>
-          <h2 className='mt-1 text-2xl font-semibold tracking-tight text-white'>
+          <h2 className='text-2xl font-semibold tracking-tight text-white'>
             Upcoming bookings
           </h2>
         </div>

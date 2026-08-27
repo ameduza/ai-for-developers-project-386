@@ -27,6 +27,8 @@ export function CreateBookingTypeForm() {
   });
 
   const onSubmit = async (data: CreateBookingTypeFormData) => {
+    setSuccessMessage(null);
+
     try {
       await mutation.mutateAsync(data);
       setSuccessMessage('Booking type created');
@@ -40,7 +42,7 @@ export function CreateBookingTypeForm() {
     <div>
       <header className='border-b border-white/10 pb-5'>
         <p className='text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-200/70'>
-          New booking type
+          Create booking type
         </p>
         <h2 className='mt-1 text-xl font-semibold tracking-tight text-white'>
           Create booking type
