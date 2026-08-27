@@ -9,8 +9,3 @@ export const QUERY_KEYS = {
   OWNER_BOOKING_TYPES: ['owner-booking-types'] as const,
   OWNER_UPCOMING_BOOKINGS: ['owner-upcoming-bookings'] as const,
 } as const;
-
-// UI timeouts and delays (in milliseconds)
-export const TIMEOUTS = {
-  SUCCESS_MESSAGE: 3000,
-} as const;
