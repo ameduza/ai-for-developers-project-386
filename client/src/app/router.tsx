@@ -4,7 +4,7 @@ import { HomePage } from '@/pages/HomePage';
 import { GuestLandingPage } from '@/pages/guest/GuestLandingPage';
 import { GuestBookingTypePage } from '@/pages/guest/GuestBookingTypePage';
 import { GuestBookingConfirmationPage } from '@/pages/guest/GuestBookingConfirmationPage';
-import { OwnerDashboardPage } from '@/pages/owner/OwnerDashboardPage';
+import { OwnerWorkspacePrototypePage } from '@/pages/owner/OwnerWorkspacePrototypePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -21,7 +21,7 @@ export const router = createBrowserRouter([
         path: 'bookings/:bookingId',
         element: <GuestBookingConfirmationPage />,
       },
-      { path: 'owner', element: <OwnerDashboardPage /> },
+      { path: 'owner', element: <OwnerWorkspacePrototypePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

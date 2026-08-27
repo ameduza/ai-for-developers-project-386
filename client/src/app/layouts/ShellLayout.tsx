@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
@@ -9,6 +9,13 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   ].join(' ');
 
 export function ShellLayout() {
+  const location = useLocation();
+
+  // PROTOTYPE #76: the Owner workspace owns its full dark shell.
+  if (location.pathname.startsWith('/owner')) {
+    return <Outlet />;
+  }
+
   return (
     <div className='min-h-screen bg-background text-foreground'>
       <header className='border-b'>
