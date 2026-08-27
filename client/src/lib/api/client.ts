@@ -2,8 +2,8 @@ import { DefaultService, OpenAPI } from '@/lib/api/generated';
 import type { CreateBooking, CreateBookingType } from '@/lib/api/generated';
 import { getApiBaseUrl } from '@/lib/env';
 
-export function configureApiClient() {
-  OpenAPI.BASE = getApiBaseUrl();
+export function configureApiClient(apiBaseUrl = getApiBaseUrl()) {
+  OpenAPI.BASE = apiBaseUrl;
   OpenAPI.WITH_CREDENTIALS = false;
   OpenAPI.CREDENTIALS = 'omit';
 }

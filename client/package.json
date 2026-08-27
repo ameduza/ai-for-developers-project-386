@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev:web": "vite",
-    "dev:mock": "prism mock ../typespec/tsp-output/schema/openapi.yaml --host 127.0.0.1 --port 4010",
-    "dev": "npm run generate:api && cross-env VITE_API_BASE_URL=http://127.0.0.1:4010 concurrently -k -n mock,web -c cyan,magenta \"npm run dev:mock\" \"npm run dev:web\"",
+    "dev:mock-server": "prism mock ../typespec/tsp-output/schema/openapi.yaml --host 127.0.0.1 --port 4010",
+    "dev:mock": "npm run generate:api && cross-env VITE_API_BASE_URL=http://127.0.0.1:4010 concurrently --kill-others -n mock,web -c cyan,magenta \"npm run dev:mock-server\" \"npm run dev:web\"",
+    "dev": "npm run generate:api && cross-env VITE_API_BASE_URL=http://localhost:3000 concurrently --kill-others -n server,web -c cyan,magenta \"npm --prefix ../server run start\" \"npm run dev:web\"",
     "build:contract": "node scripts/build-contract.mjs",
     "generate:api": "npm run build:contract && node scripts/generate-api.mjs",
     "build": "npm run generate:api && node scripts/build-web.mjs",
