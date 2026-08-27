@@ -4,10 +4,15 @@ import { HomePage } from '@/pages/HomePage';
 import { GuestLandingPage } from '@/pages/guest/GuestLandingPage';
 import { GuestBookingTypePage } from '@/pages/guest/GuestBookingTypePage';
 import { GuestBookingConfirmationPage } from '@/pages/guest/GuestBookingConfirmationPage';
+import { GuestJourneyPrototypePage } from '@/pages/guest/GuestJourneyPrototypePage';
 import { OwnerDashboardPage } from '@/pages/owner/OwnerDashboardPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export const router = createBrowserRouter([
+  {
+    path: 'guest/prototype',
+    element: <GuestJourneyPrototypePage />,
+  },
   {
     element: <ShellLayout />,
     children: [
