@@ -4,30 +4,31 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ApiError } from '@/lib/api/generated';
 import type { TimeSlot } from '@/lib/api/generated';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import {
   createBookingSchema,
   type CreateBookingFormData,
 } from '@/features/guest/schemas';
 import { useCreateBookingMutation } from '@/features/guest/queries';
-import { formatTimeSlot } from '@/features/guest/format-time-slot';
-import { extractApiErrorMessage } from '@/lib/api/extract-error-message';
+
+export type GuestDetails = {
+  name: string;
+  email: string;
+};
 
 type BookingFormProps = {
   bookingTypeId: string;
   timeSlot: TimeSlot;
+  initialGuestDetails?: GuestDetails;
+  onTimeUnavailable?: (guestDetails: GuestDetails) => void;
 };
 
-export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
+export function BookingForm({
+  bookingTypeId,
+  timeSlot,
+  initialGuestDetails,
+  onTimeUnavailable,
+}: BookingFormProps) {
   const navigate = useNavigate();
   const mutation = useCreateBookingMutation();
-
   const {
     register,
     handleSubmit,
@@ -39,8 +40,8 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
       bookingTypeId,
       slotStart: timeSlot.startTime,
       slotEnd: timeSlot.endTime,
-      guestName: '',
-      guestEmail: '',
+      guestName: initialGuestDetails?.name ?? '',
+      guestEmail: initialGuestDetails?.email ?? '',
     },
   });
 
@@ -55,126 +56,76 @@ export function BookingForm({ bookingTypeId, timeSlot }: BookingFormProps) {
       });
       navigate(`/bookings/${booking.id}`);
     } catch (error) {
-      if (!(error instanceof ApiError)) {
-        setError('root.serverError', {
-          type: 'server',
-          message: 'Could not create the booking. Please try again.',
-        });
-        return;
-      }
+      if (error instanceof ApiError && error.status === 409) {
+        if (onTimeUnavailable) {
+          onTimeUnavailable({
+            name: data.guestName,
+            email: data.guestEmail,
+          });
+          return;
+        }
 
-      if (error.status === 409) {
         setError('root.slotTaken', {
           type: 'server',
-          message:
-            'This time slot is no longer available. Please pick another one.',
+          message: 'This time is no longer available. Choose another time.',
         });
-        return;
-      }
-
-      if (error.status === 400) {
-        const message = extractApiErrorMessage(error);
-        let mappedToField = false;
-
-        if (/email/i.test(message)) {
-          setError('guestEmail', { type: 'server', message });
-          mappedToField = true;
-        }
-
-        if (/name/i.test(message)) {
-          setError('guestName', { type: 'server', message });
-          mappedToField = true;
-        }
-
-        if (!mappedToField) {
-          setError('root.serverError', { type: 'server', message });
-        }
-
         return;
       }
 
       setError('root.serverError', {
         type: 'server',
-        message: extractApiErrorMessage(error),
+        message: 'We couldn’t confirm your booking. Try again.',
       });
     }
   };
+  const pending = isSubmitting || mutation.isPending;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Book this time slot</CardTitle>
-        <CardDescription>
-          <time dateTime={timeSlot.startTime}>{formatTimeSlot(timeSlot)}</time>
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className='space-y-4'>
-          <div className='space-y-2'>
-            <label
-              htmlFor='guestName'
-              className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
-            >
-              Your name
-            </label>
-            <input
-              id='guestName'
-              type='text'
-              placeholder='e.g., Ada Lovelace'
-              className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
-              {...register('guestName')}
-              disabled={isSubmitting || mutation.isPending}
-            />
-            {errors.guestName && (
-              <p className='text-xs text-destructive'>
-                {errors.guestName.message}
-              </p>
-            )}
-          </div>
+    <form
+      className='guest-details-form'
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
+      <div>
+        <label htmlFor='guestName'>Name</label>
+        <input
+          id='guestName'
+          type='text'
+          autoComplete='name'
+          {...register('guestName')}
+          disabled={pending}
+          aria-invalid={Boolean(errors.guestName)}
+        />
+        {errors.guestName && <p>{errors.guestName.message}</p>}
+      </div>
 
-          <div className='space-y-2'>
-            <label
-              htmlFor='guestEmail'
-              className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
-            >
-              Your email
-            </label>
-            <input
-              id='guestEmail'
-              type='email'
-              placeholder='e.g., ada@example.com'
-              className='flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
-              {...register('guestEmail')}
-              disabled={isSubmitting || mutation.isPending}
-            />
-            {errors.guestEmail && (
-              <p className='text-xs text-destructive'>
-                {errors.guestEmail.message}
-              </p>
-            )}
-          </div>
+      <div>
+        <label htmlFor='guestEmail'>Email</label>
+        <input
+          id='guestEmail'
+          type='email'
+          autoComplete='email'
+          {...register('guestEmail')}
+          disabled={pending}
+          aria-invalid={Boolean(errors.guestEmail)}
+        />
+        {errors.guestEmail && <p>{errors.guestEmail.message}</p>}
+      </div>
 
-          {errors.root?.slotTaken && (
-            <p role='alert' className='text-sm text-destructive'>
-              {errors.root.slotTaken.message}
-            </p>
-          )}
+      {errors.root?.slotTaken && (
+        <p role='alert' className='guest-form-error'>
+          {errors.root.slotTaken.message}
+        </p>
+      )}
+      {errors.root?.serverError && (
+        <p role='alert' className='guest-form-error'>
+          {errors.root.serverError.message}
+        </p>
+      )}
 
-          {errors.root?.serverError && (
-            <p role='alert' className='text-sm text-destructive'>
-              {errors.root.serverError.message}
-            </p>
-          )}
-
-          <Button
-            type='submit'
-            disabled={isSubmitting || mutation.isPending}
-            className='w-full'
-          >
-            {mutation.isPending ? 'Booking...' : 'Confirm booking'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <button className='guest-primary-action' type='submit' disabled={pending}>
+        {pending ? 'Loading...' : 'Confirm booking'}
+      </button>
+    </form>
   );
 }

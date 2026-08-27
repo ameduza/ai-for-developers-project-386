@@ -1,70 +1,71 @@
+import { ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useGuestBookingTypesQuery } from '@/features/guest/queries';
+import { usePageTitle } from '@/lib/use-page-title';
 
 export function GuestLandingPage() {
+  usePageTitle('Choose a booking type');
   const bookingTypesQuery = useGuestBookingTypesQuery();
   const bookingTypes = bookingTypesQuery.data?.items ?? [];
+  const retrying = bookingTypesQuery.isError && bookingTypesQuery.isFetching;
 
   return (
-    <div className='space-y-6'>
-      <Card>
-        <CardHeader>
-          <CardTitle>Available Booking Types</CardTitle>
-          <CardDescription>
-            Select a time slot that works best for you.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {bookingTypesQuery.isLoading ? (
-            <p className='text-sm text-muted-foreground'>
-              Loading booking types...
+    <section className='guest-catalog' aria-labelledby='guest-catalog-title'>
+      <header className='guest-step-heading'>
+        <span aria-hidden='true'>01</span>
+        <div>
+          <p>Booking type catalog</p>
+          <h1 id='guest-catalog-title'>Choose a booking type</h1>
+        </div>
+      </header>
+
+      <div className='guest-catalog-list'>
+        {bookingTypesQuery.isLoading ? (
+          <p className='guest-state-copy'>Loading...</p>
+        ) : bookingTypesQuery.isError ? (
+          <div className='guest-state-block'>
+            <p className='guest-state-copy guest-state-copy-error'>
+              We couldn’t load the booking types. Try again.
             </p>
-          ) : bookingTypesQuery.isError ? (
-            <p className='text-sm text-destructive'>
-              Could not load booking types. Is the mock server running?
-            </p>
-          ) : bookingTypes.length === 0 ? (
-            <p className='text-sm text-muted-foreground'>
-              No booking types are published yet.
-            </p>
-          ) : (
-            <div className='space-y-4'>
-              {bookingTypes.map((bookingType) => (
-                <Card key={bookingType.id} className='border'>
-                  <CardContent className='pt-6'>
-                    <div className='space-y-2'>
-                      <div className='flex items-start justify-between'>
-                        <h4 className='font-semibold text-foreground'>
-                          {bookingType.title}
-                        </h4>
-                        <span className='rounded bg-muted px-2 py-1 text-xs font-medium text-muted-foreground'>
-                          {bookingType.durationMinutes} min
-                        </span>
-                      </div>
-                      <p className='text-sm text-muted-foreground'>
-                        {bookingType.description}
-                      </p>
-                      <Button asChild className='mt-4 w-full'>
-                        <Link to={`/guest/booking-types/${bookingType.id}`}>
-                          Book Now
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+            <button
+              className='guest-secondary-action'
+              type='button'
+              disabled={retrying}
+              onClick={() => bookingTypesQuery.refetch()}
+            >
+              {retrying ? 'Loading...' : 'Try again'}
+            </button>
+          </div>
+        ) : bookingTypes.length === 0 ? (
+          <p className='guest-state-copy'>
+            No booking types are available right now.
+          </p>
+        ) : (
+          <ol>
+            {bookingTypes.map((bookingType, index) => (
+              <li key={bookingType.id}>
+                <span className='guest-catalog-index' aria-hidden='true'>
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className='guest-catalog-copy'>
+                  <div>
+                    <h2>{bookingType.title}</h2>
+                    <span>{bookingType.durationMinutes} min</span>
+                  </div>
+                  <p>{bookingType.description}</p>
+                </div>
+                <Link
+                  className='guest-pill-action'
+                  to={`/guest/booking-types/${bookingType.id}`}
+                >
+                  View available times
+                  <ArrowUpRight aria-hidden='true' />
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </section>
   );
 }

@@ -1,69 +1,32 @@
+import { ArrowRight, CalendarCheck2, Clock3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarRange, ShieldCheck, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { usePageTitle } from '@/lib/use-page-title';
 
 export function HomePage() {
-  return (
-    <div className='space-y-8'>
-      <section className='grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]'>
-        <div className='space-y-4'>
-          <div className='inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm text-muted-foreground'>
-            <Sparkles className='h-4 w-4' />
-            Contract-first booking frontend
-          </div>
-          <div className='space-y-3'>
-            <h1 className='text-4xl font-bold tracking-tight sm:text-5xl'>
-              Booking Service
-            </h1>
-            <p className='max-w-2xl text-lg text-muted-foreground'>
-              A Vite SPA scaffold for the Guest and Owner flows, wired for
-              TanStack Query, shadcn/ui, and the TypeSpec API contract.
-            </p>
-          </div>
-          <div className='flex flex-wrap gap-3'>
-            <Button asChild>
-              <Link to='/guest'>
-                Open guest area <ArrowRight className='ml-2 h-4 w-4' />
-              </Link>
-            </Button>
-            <Button asChild variant='outline'>
-              <Link to='/owner'>
-                Open owner area <ArrowRight className='ml-2 h-4 w-4' />
-              </Link>
-            </Button>
-          </div>
-        </div>
+  usePageTitle('Home');
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Foundation in place</CardTitle>
-            <CardDescription>
-              Ready for the later booking screens.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className='space-y-3 text-sm text-muted-foreground'>
-            <div className='flex items-center gap-3'>
-              <CalendarRange className='h-4 w-4 text-primary' />
-              Guest and Owner route shells
-            </div>
-            <div className='flex items-center gap-3'>
-              <ShieldCheck className='h-4 w-4 text-primary' />
-              No-auth flow preserved
-            </div>
-            <div className='flex items-center gap-3'>
-              <Sparkles className='h-4 w-4 text-primary' />
-              shadcn-style primitives and layout
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-    </div>
+  return (
+    <section className='public-hero' aria-labelledby='public-hero-title'>
+      <div className='public-hero-copy'>
+        <p>Simple scheduling, thoughtfully arranged</p>
+        <h1 id='public-hero-title'>Find a time that works for you</h1>
+        <p>
+          Choose a booking type, select an available time, and confirm your
+          booking.
+        </p>
+        <Link className='guest-primary-action' to='/guest'>
+          Book time slot <ArrowRight aria-hidden='true' />
+        </Link>
+      </div>
+      <aside className='public-hero-note' aria-label='How booking works'>
+        <CalendarCheck2 aria-hidden='true' />
+        <p>Available for the next 14 days</p>
+        <h2>Your time, clearly presented.</h2>
+        <div>
+          <Clock3 aria-hidden='true' />
+          <span>All times are shown in UTC.</span>
+        </div>
+      </aside>
+    </section>
   );
 }

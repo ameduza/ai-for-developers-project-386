@@ -1,19 +1,13 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { CheckCircle2, CircleX } from 'lucide-react';
 import { ApiError } from '@/lib/api/generated';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   useBookingQuery,
   useCancelBookingMutation,
 } from '@/features/guest/queries';
 import { formatTimeSlot } from '@/features/guest/format-time-slot';
+import { usePageTitle } from '@/lib/use-page-title';
 
 function StateCard({
   title,
@@ -23,17 +17,13 @@ function StateCard({
   description: string;
 }) {
   return (
-    <Card className='max-w-3xl'>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button asChild variant='outline'>
-          <Link to='/guest'>Back to guest area</Link>
-        </Button>
-      </CardContent>
-    </Card>
+    <section className='guest-confirmation guest-state-panel'>
+      <h1>{title}</h1>
+      <p>{description}</p>
+      <Link className='guest-primary-action' to='/guest'>
+        Go to booking page
+      </Link>
+    </section>
   );
 }
 
@@ -42,115 +32,149 @@ export function GuestBookingConfirmationPage() {
   const bookingQuery = useBookingQuery(bookingId);
   const cancelMutation = useCancelBookingMutation();
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const isNotFound =
+    bookingQuery.error instanceof ApiError && bookingQuery.error.status === 404;
+  const retrying = bookingQuery.isError && bookingQuery.isFetching;
+  const pageTitle = cancelMutation.isSuccess
+    ? 'Booking canceled'
+    : bookingQuery.data
+      ? 'Booking confirmed'
+      : isNotFound
+        ? 'Booking not found'
+        : bookingQuery.isError
+          ? 'Booking unavailable'
+          : 'Booking confirmation';
+  usePageTitle(pageTitle);
 
   if (cancelMutation.isSuccess) {
     return (
-      <StateCard
-        title='Booking cancelled'
-        description='This booking has been cancelled. The time slot is free again.'
-      />
+      <section
+        className='guest-confirmation guest-confirmation-canceled'
+        aria-labelledby='canceled-title'
+      >
+        <CircleX aria-hidden='true' />
+        <h1 id='canceled-title'>Booking canceled</h1>
+        <p>
+          Your booking has been canceled. This time is now available for someone
+          else.
+        </p>
+        <Link className='guest-primary-action' to='/guest'>
+          Book another time
+        </Link>
+      </section>
     );
   }
 
   if (bookingQuery.isLoading) {
     return (
-      <Card className='max-w-3xl'>
-        <CardHeader>
-          <CardTitle>Booking confirmation</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className='text-sm text-muted-foreground'>Loading booking...</p>
-        </CardContent>
-      </Card>
+      <section className='guest-confirmation guest-state-panel'>
+        <h1>Booking confirmation</h1>
+        <p>Loading...</p>
+      </section>
     );
   }
 
   if (bookingQuery.isError || !bookingQuery.data) {
-    const isNotFound =
-      bookingQuery.error instanceof ApiError &&
-      bookingQuery.error.status === 404;
-
     return isNotFound ? (
       <StateCard
         title='Booking not found'
-        description='This booking does not exist or may have been cancelled.'
+        description='This link may be invalid, or the booking may have been canceled.'
       />
     ) : (
-      <StateCard
-        title='Could not load booking'
-        description='Something went wrong while loading this booking.'
-      />
+      <section className='guest-confirmation guest-state-panel'>
+        <h1>Booking unavailable</h1>
+        <p>We couldn’t load this booking. Try again.</p>
+        <div className='guest-confirmation-actions'>
+          <button
+            className='guest-secondary-action'
+            type='button'
+            disabled={retrying}
+            onClick={() => bookingQuery.refetch()}
+          >
+            {retrying ? 'Loading...' : 'Try again'}
+          </button>
+          <Link className='guest-primary-action' to='/guest'>
+            Go to booking page
+          </Link>
+        </div>
+      </section>
     );
   }
 
   const booking = bookingQuery.data;
 
   return (
-    <Card className='max-w-3xl'>
-      <CardHeader>
-        <CardTitle>{booking.bookingType.title}</CardTitle>
-        <CardDescription>{booking.bookingType.description}</CardDescription>
-      </CardHeader>
-      <CardContent className='space-y-4'>
-        <p className='text-sm text-muted-foreground'>
-          Your time slot:{' '}
-          <time
-            className='font-medium text-foreground'
-            dateTime={booking.timeSlot.startTime}
-          >
-            {formatTimeSlot(booking.timeSlot)}
-          </time>
-        </p>
-        <p className='text-sm text-muted-foreground'>
-          Booked by{' '}
-          <span className='font-medium text-foreground'>
-            {booking.guest.name}
-          </span>{' '}
-          ({booking.guest.email})
-        </p>
+    <section
+      className='guest-confirmation'
+      aria-labelledby='confirmation-title'
+    >
+      <CheckCircle2 aria-hidden='true' />
+      <p className='guest-confirmation-kicker'>You’re all set</p>
+      <h1 id='confirmation-title'>Booking confirmed</h1>
+      <p className='guest-confirmation-title'>{booking.bookingType.title}</p>
+      <dl className='guest-booking-summary'>
+        <div>
+          <dt>Name</dt>
+          <dd>{booking.guest.name}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{booking.guest.email}</dd>
+        </div>
+        <div>
+          <dt>Booking type</dt>
+          <dd>{booking.bookingType.title}</dd>
+        </div>
+        <div>
+          <dt>Time</dt>
+          <dd>
+            <time dateTime={booking.timeSlot.startTime}>
+              {formatTimeSlot(booking.timeSlot)}
+            </time>
+          </dd>
+        </div>
+      </dl>
 
-        {cancelMutation.isError && (
-          <p role='alert' className='text-sm text-destructive'>
-            Could not cancel the booking. Please try again.
-          </p>
-        )}
+      {cancelMutation.isError && (
+        <p role='alert' className='guest-form-error'>
+          We couldn’t cancel your booking. Try again.
+        </p>
+      )}
 
-        {confirmingCancel ? (
-          <div className='space-y-2'>
-            <p className='text-sm text-muted-foreground'>
-              Cancel this booking? This cannot be undone.
-            </p>
-            <div className='flex gap-2'>
-              <Button
-                variant='destructive'
-                onClick={() => cancelMutation.mutate(booking.id)}
-                disabled={cancelMutation.isPending}
-              >
-                {cancelMutation.isPending ? 'Cancelling...' : 'Yes, cancel it'}
-              </Button>
-              <Button
-                variant='outline'
-                onClick={() => setConfirmingCancel(false)}
-                disabled={cancelMutation.isPending}
-              >
-                Keep booking
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className='flex gap-2'>
-            <Button
-              variant='destructive'
-              onClick={() => setConfirmingCancel(true)}
+      {confirmingCancel ? (
+        <div className='guest-cancel-box'>
+          <h2>Cancel this booking?</h2>
+          <p>This time will become available for someone else.</p>
+          <div className='guest-confirmation-actions'>
+            <button
+              className='guest-secondary-action'
+              onClick={() => setConfirmingCancel(false)}
+              disabled={cancelMutation.isPending}
             >
-              Cancel booking
-            </Button>
-            <Button asChild variant='outline'>
-              <Link to='/guest'>Back to guest area</Link>
-            </Button>
+              Keep booking
+            </button>
+            <button
+              className='guest-danger-action'
+              onClick={() => cancelMutation.mutate(booking.id)}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? 'Loading...' : 'Cancel booking'}
+            </button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      ) : (
+        <div className='guest-confirmation-actions'>
+          <button
+            className='guest-link-action guest-link-action-danger'
+            onClick={() => setConfirmingCancel(true)}
+          >
+            Cancel booking
+          </button>
+          <Link className='guest-primary-action' to='/guest'>
+            Book another time
+          </Link>
+        </div>
+      )}
+    </section>
   );
 }
