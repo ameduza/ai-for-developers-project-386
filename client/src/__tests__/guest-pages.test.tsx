@@ -425,6 +425,7 @@ describe('GuestBookingTypePage', () => {
   });
 
   it('returns to time selection after a conflict and preserves guest details', async () => {
+    let slotRequests = 0;
     const slots = [
       {
         id: 'first-slot',
@@ -473,6 +474,7 @@ describe('GuestBookingTypePage', () => {
         );
       }
 
+      slotRequests += 1;
       return new Response(JSON.stringify({ items: slots }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -514,6 +516,15 @@ describe('GuestBookingTypePage', () => {
     });
     const timeHeading = screen.getByRole('heading', { name: 'Choose a time' });
     assert.equal(document.activeElement, timeHeading);
+    await waitFor(() => {
+      assert.equal(slotRequests, 2);
+      assert.equal(
+        screen.queryByRole('button', {
+          name: 'September 1, 2026 · 10:00 AM–10:30 AM UTC',
+        }),
+        null,
+      );
+    });
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -620,6 +631,55 @@ describe('GuestBookingTypePage', () => {
       );
     });
     assert.equal(slotAttempts, 2);
+  });
+
+  it('offers a retry action when the booking type is unavailable', async () => {
+    let bookingTypeAttempts = 0;
+    globalThis.fetch = async (input) => {
+      if (String(input).endsWith('/booking-types')) {
+        bookingTypeAttempts += 1;
+        return new Response(
+          JSON.stringify({
+            items:
+              bookingTypeAttempts === 1
+                ? []
+                : [
+                    {
+                      id: 'consultation',
+                      title: 'Product strategy',
+                      description: 'Discuss the next product milestone.',
+                      durationMinutes: 30,
+                    },
+                  ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    };
+
+    renderWithProviders(
+      <GuestBookingTypePage />,
+      '/guest/booking-types/consultation',
+    );
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText('We couldn’t load the available times. Try again.'),
+      );
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByText('No times are available in the next 14 days.'),
+      );
+    });
+    assert.equal(bookingTypeAttempts, 2);
   });
 });
 

@@ -93,6 +93,9 @@ export function GuestBookingTypePage() {
   const [step, setStep] = useState<'time' | 'details'>('time');
   const [guestDetails, setGuestDetails] = useState({ name: '', email: '' });
   const [timeConflict, setTimeConflict] = useState(false);
+  const [rejectedSlotIds, setRejectedSlotIds] = useState<Set<string>>(
+    new Set(),
+  );
   const timeHeadingRef = useRef<HTMLHeadingElement>(null);
   usePageTitle(step === 'details' ? 'Enter your details' : 'Choose a time');
   const now = Date.now();
@@ -104,12 +107,14 @@ export function GuestBookingTypePage() {
       (timeSlotsQuery.data?.items ?? [])
         .filter(
           (timeSlot) =>
-            timeSlot.available && isWithinBookingWindow(timeSlot, now),
+            timeSlot.available &&
+            !rejectedSlotIds.has(timeSlot.id) &&
+            isWithinBookingWindow(timeSlot, now),
         )
         .sort((first, second) =>
           first.startTime.localeCompare(second.startTime),
         ),
-    [now, timeSlotsQuery.data?.items],
+    [now, rejectedSlotIds, timeSlotsQuery.data?.items],
   );
   const slotsByDate = useMemo(() => {
     const grouped = new Map<string, TimeSlot[]>();
@@ -181,6 +186,16 @@ export function GuestBookingTypePage() {
         <p className='guest-state-copy guest-state-copy-error'>
           We couldn’t load the available times. Try again.
         </p>
+        <button
+          className='guest-secondary-action'
+          type='button'
+          onClick={() => {
+            bookingTypesQuery.refetch();
+            timeSlotsQuery.refetch();
+          }}
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -229,9 +244,13 @@ export function GuestBookingTypePage() {
             initialGuestDetails={guestDetails}
             onTimeUnavailable={(details) => {
               setGuestDetails(details);
+              setRejectedSlotIds((ids) =>
+                new Set(ids).add(selectedTimeSlot.id),
+              );
               setSelectedSlotId(null);
               setTimeConflict(true);
               setStep('time');
+              void timeSlotsQuery.refetch();
             }}
           />
         </div>
