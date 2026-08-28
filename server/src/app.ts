@@ -12,6 +12,7 @@ import type { Seed } from './repository.js';
 export interface CreateAppOptions {
   now: () => Date;
   seed: Seed;
+  clientOrigin?: string;
 }
 
 function errorBody(code: ErrorCode, message: string) {
@@ -83,7 +84,11 @@ function dispatchWithBookingRequestValidation(
   });
 }
 
-export function createApp({ now, seed }: CreateAppOptions): Express {
+export function createApp({
+  now,
+  seed,
+  clientOrigin = 'http://localhost:5173',
+}: CreateAppOptions): Express {
   const app = express();
   const { ownerRoutes, bookingTypes, bookings } = createOperations({
     now,
@@ -120,7 +125,7 @@ export function createApp({ now, seed }: CreateAppOptions): Express {
       },
     },
   );
-  app.use(cors({ origin: 'http://localhost:5173' }));
+  app.use(cors({ origin: clientOrigin }));
   app.use((request, response, next) =>
     dispatchWithBookingRequestValidation(request, response, next, router),
   );

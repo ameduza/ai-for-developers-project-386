@@ -12,7 +12,8 @@
   "workspaces": [
     "typespec",
     "client",
-    "server"
+    "server",
+    "e2e"
   ],
   "engines": {
     "node": ">=22.5.0"
@@ -20,6 +21,7 @@
   "scripts": {
     "build:contract": "npm run build:contract --workspace typespec",
     "test": "npm run test:release-config && npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspace e2e --",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format:check": "npm run format:check --workspaces --if-present",
@@ -35,6 +37,10 @@
     "server/**/*.ts": [
       "npm run lint:staged --workspace server --",
       "npm run format:staged --workspace server --"
+    ],
+    "e2e/**/*.ts": [
+      "npm run lint:staged --workspace e2e --",
+      "npm run format:staged --workspace e2e --"
     ]
   },
   "devDependencies": {
