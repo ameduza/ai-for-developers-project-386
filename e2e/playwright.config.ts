@@ -20,7 +20,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npm run start --workspace server',
+      command: 'npm --prefix .. run start --workspace server',
       url: 'http://localhost:3100/owner',
       env: {
         CLIENT_ORIGIN: 'http://localhost:4173',
@@ -30,7 +30,7 @@ export default defineConfig({
     },
     {
       command:
-        'npm run dev:web --workspace client -- --host localhost --port 4173',
+        'npm --prefix .. run dev:web --workspace client -- --host localhost --port 4173',
       url: 'http://localhost:4173',
       env: {
         VITE_API_BASE_URL: 'http://localhost:3100',
