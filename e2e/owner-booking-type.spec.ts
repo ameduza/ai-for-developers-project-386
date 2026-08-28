@@ -1,13 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type TestInfo } from '@playwright/test';
+import { createUniqueE2EId } from './support/unique-id.js';
 
 function createUniqueBookingType(testInfo: TestInfo) {
-  const uniqueId = [
-    Date.now(),
-    testInfo.parallelIndex,
-    testInfo.retry,
-    randomUUID().slice(0, 8),
-  ].join('-');
+  const uniqueId = createUniqueE2EId(testInfo);
 
   return {
     title: `E2E Booking Type ${uniqueId}`,

@@ -5,21 +5,14 @@ import {
   type APIRequestContext,
   type TestInfo,
 } from '@playwright/test';
-
-type BookingType = {
-  id: string;
-  title: string;
-  description: string;
-  durationMinutes: number;
-};
+import type {
+  BookingType,
+  CreateBookingType,
+} from '../client/src/lib/api/generated/index.js';
+import { createUniqueE2EId } from './support/unique-id.js';
 
 function createUniqueJourneyData(testInfo: TestInfo) {
-  const uniqueId = [
-    Date.now(),
-    testInfo.parallelIndex,
-    testInfo.retry,
-    randomUUID().slice(0, 8),
-  ].join('-');
+  const uniqueId = createUniqueE2EId(testInfo);
 
   return {
     bookingType: {
@@ -37,7 +30,7 @@ function createUniqueJourneyData(testInfo: TestInfo) {
 
 async function createBookingType(
   request: APIRequestContext,
-  bookingType: Omit<BookingType, 'id'>,
+  bookingType: CreateBookingType,
 ) {
   const response = await request.post(
     'http://localhost:3100/owner/booking-types',
