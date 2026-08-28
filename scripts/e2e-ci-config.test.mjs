@@ -68,6 +68,14 @@ test('Playwright retains failure diagnostics without recording routine video', a
 
   assert.equal(localConfig.retries, 0);
   assert.equal(ciConfig.retries, 1);
+  assert.ok(
+    localConfig.webServer.every(
+      ({ reuseExistingServer }) => reuseExistingServer,
+    ),
+  );
+  assert.ok(
+    ciConfig.webServer.every(({ reuseExistingServer }) => !reuseExistingServer),
+  );
   assert.equal(ciConfig.use.trace, 'retain-on-failure');
   assert.equal(ciConfig.use.screenshot, 'only-on-failure');
   assert.equal(ciConfig.use.video, 'off');

@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import {
   expect,
   test,
@@ -24,8 +23,14 @@ function createUniqueJourneyData(testInfo: TestInfo) {
       name: `E2E Guest ${uniqueId}`,
       email: `e2e-guest-${uniqueId}@example.com`,
     },
-    slotChoiceSeed: Number.parseInt(randomUUID().slice(0, 8), 16),
   } as const;
+}
+
+function displayedTimeSlotStart(displayedTimeSlot: string) {
+  const [date, timeRange] = displayedTimeSlot.split(' · ');
+  const [startTime] = timeRange.split('–');
+
+  return Date.parse(`${date} ${startTime} UTC`);
 }
 
 async function createBookingType(
@@ -60,10 +65,23 @@ test('Guest can book, review, and cancel an available Time Slot', async ({
   const availableTimeCount = await timeButtons.count();
   expect(availableTimeCount).toBeGreaterThan(0);
 
-  const selectedTimeButton = timeButtons.nth(
-    journey.slotChoiceSeed % availableTimeCount,
+  const visibleTimes = (await timeButtons.allInnerTexts()).map((time) =>
+    time.trim(),
   );
-  const selectedTime = (await selectedTimeButton.innerText()).trim();
+  const selectedTime = visibleTimes.reduce((earliestTime, candidateTime) => {
+    const earliestStart = displayedTimeSlotStart(earliestTime);
+    const candidateStart = displayedTimeSlotStart(candidateTime);
+
+    expect(Number.isNaN(earliestStart)).toBe(false);
+    expect(Number.isNaN(candidateStart)).toBe(false);
+
+    return candidateStart < earliestStart ? candidateTime : earliestTime;
+  });
+  const selectedTimeButton = availableTimes.getByRole('button', {
+    name: selectedTime,
+    exact: true,
+  });
+  await expect(selectedTimeButton).toHaveCount(1);
   await selectedTimeButton.click();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 

@@ -26,7 +26,7 @@ export default defineConfig({
         CLIENT_ORIGIN: 'http://localhost:4173',
         PORT: '3100',
       },
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
     {
       command:
@@ -35,7 +35,7 @@ export default defineConfig({
       env: {
         VITE_API_BASE_URL: 'http://localhost:3100',
       },
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
   ],
 });
