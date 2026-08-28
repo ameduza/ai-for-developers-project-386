@@ -13,7 +13,7 @@ async function loadPlaywrightConfig(ci) {
   }
 
   try {
-    const configUrl = new URL('../playwright.config.mjs', import.meta.url);
+    const configUrl = new URL('../e2e/playwright.config.mjs', import.meta.url);
     configUrl.searchParams.set('ci', String(ci));
     return (await import(configUrl.href)).default;
   } finally {
@@ -24,6 +24,22 @@ async function loadPlaywrightConfig(ci) {
     }
   }
 }
+
+test('root E2E command selects the colocated Playwright project', async () => {
+  const packageSource = await readFile(
+    new URL('../package.json', import.meta.url),
+    'utf8',
+  );
+  const packageJson = JSON.parse(packageSource);
+  const config = await loadPlaywrightConfig(false);
+
+  assert.equal(
+    packageJson.scripts['test:e2e'],
+    'playwright test --config e2e/playwright.config.mjs',
+  );
+  assert.equal(config.testDir, './tests');
+  assert.equal(config.outputDir, './test-results');
+});
 
 test('Playwright retains failure diagnostics without recording routine video', async () => {
   const localConfig = await loadPlaywrightConfig(false);
@@ -80,5 +96,5 @@ test('verification workflow runs Chromium E2E tests and preserves failures', asy
     ({ uses }) => uses === 'actions/upload-artifact@v4',
   );
   assert.equal(artifactStep.if, 'failure()');
-  assert.equal(artifactStep.with.path, 'test-results/');
+  assert.equal(artifactStep.with.path, 'e2e/test-results/');
 });

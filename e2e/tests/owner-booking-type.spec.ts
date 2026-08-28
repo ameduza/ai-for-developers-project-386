@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type TestInfo } from '@playwright/test';
-import { createUniqueE2EId } from './support/unique-id.js';
+import { createUniqueE2EId } from '../support/unique-id.js';
 
 function createUniqueBookingType(testInfo: TestInfo) {
   const uniqueId = createUniqueE2EId(testInfo);

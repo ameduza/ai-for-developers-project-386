@@ -8,8 +8,8 @@ import {
 import type {
   BookingType,
   CreateBookingType,
-} from '../client/src/lib/api/generated/index.js';
-import { createUniqueE2EId } from './support/unique-id.js';
+} from '../../client/src/lib/api/generated/index.js';
+import { createUniqueE2EId } from '../support/unique-id.js';
 
 function createUniqueJourneyData(testInfo: TestInfo) {
   const uniqueId = createUniqueE2EId(testInfo);
