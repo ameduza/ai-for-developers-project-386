@@ -19,8 +19,9 @@
   },
   "scripts": {
     "build:contract": "npm run build:contract --workspace typespec",
-    "test": "npm run test:release-config && npm run test --workspaces --if-present",
+    "test": "npm run test:release-config && npm run test:e2e-ci-config && npm run test --workspaces --if-present",
     "test:e2e": "playwright test",
+    "test:e2e-ci-config": "node --test scripts/e2e-ci-config.test.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format:check": "npm run format:check --workspaces --if-present",
