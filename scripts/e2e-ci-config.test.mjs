@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
+import { exec } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { parse } from 'yaml';
+
+const execAsync = promisify(exec);
 
 async function loadPlaywrightConfig(ci) {
   const previousCi = process.env.CI;
@@ -39,6 +44,22 @@ test('root E2E command selects the colocated Playwright project', async () => {
   );
   assert.equal(config.testDir, './tests');
   assert.equal(config.outputDir, './test-results');
+});
+
+test('root E2E command discovers both browser journeys', async () => {
+  const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
+  const { stdout } = await execAsync('npm run test:e2e -- --list', {
+    cwd: repositoryRoot,
+  });
+
+  assert.match(
+    stdout,
+    /Guest can book, review, and cancel an available Time Slot/,
+  );
+  assert.match(
+    stdout,
+    /Owner can create a Booking Type and see its exact details/,
+  );
 });
 
 test('Playwright retains failure diagnostics without recording routine video', async () => {
