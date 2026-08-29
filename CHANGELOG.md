@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/ameduza/ai-for-developers-project-386/compare/calendar-booking-v1.1.0...calendar-booking-v1.2.0) (2026-08-29)
+
+
+### Features
+
+* add production Docker image ([#96](https://github.com/ameduza/ai-for-developers-project-386/issues/96)) ([#98](https://github.com/ameduza/ai-for-developers-project-386/issues/98)) ([8580106](https://github.com/ameduza/ai-for-developers-project-386/commit/858010631c961dd2c9785713004d0146b770a187))
+
 ## [1.1.0](https://github.com/ameduza/ai-for-developers-project-386/compare/calendar-booking-v1.0.0...calendar-booking-v1.1.0) (2026-08-28)
 
 
