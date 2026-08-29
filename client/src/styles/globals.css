@@ -521,4 +521,30 @@
   .guest-state-panel > p {
     @apply mx-auto mb-6 mt-3 max-w-md text-sm leading-6 text-[#667085];
   }
+
+  @media (min-width: 1024px) {
+    .public-content:has(> .guest-time-step) {
+      @apply pb-0;
+    }
+
+    .guest-time-step {
+      @apply flex h-[calc(100vh-4.25rem)] flex-col overflow-hidden;
+    }
+
+    .guest-calendar-layout {
+      @apply min-h-0 flex-1;
+    }
+
+    .guest-calendar-layout > * {
+      @apply min-h-0;
+    }
+
+    .guest-times {
+      @apply flex flex-col;
+    }
+
+    .guest-times > div {
+      @apply min-h-0 flex-1 overflow-y-auto;
+    }
+  }
 }
