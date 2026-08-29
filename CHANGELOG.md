@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/ameduza/ai-for-developers-project-386/compare/calendar-booking-v1.2.0...calendar-booking-v1.2.1) (2026-08-29)
+
+
+### Bug Fixes
+
+* **client:** keep Continue visible for full Time Slot days ([a3d4b00](https://github.com/ameduza/ai-for-developers-project-386/commit/a3d4b0050d3eaf968c507cc48016429cb8767ba4))
+* **client:** keep Continue visible for full Time Slot days ([#100](https://github.com/ameduza/ai-for-developers-project-386/issues/100)) ([fa503c0](https://github.com/ameduza/ai-for-developers-project-386/commit/fa503c0f423d7a15fdc83250e419e9c4a2235667))
+
 ## [1.2.0](https://github.com/ameduza/ai-for-developers-project-386/compare/calendar-booking-v1.1.0...calendar-booking-v1.2.0) (2026-08-29)
 
 
