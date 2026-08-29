@@ -5,8 +5,16 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["playwright.config.ts", "tests/**/*.ts", "support/**/*.ts"]
+  "include": [
+    "playwright.config.ts",
+    "scripts/**/*.mjs",
+    "tests/**/*.ts",
+    "support/**/*.ts",
+    "support/**/*.js"
+  ]
 }
