@@ -5,8 +5,13 @@ const { DefaultService, OpenAPI, ApiError, CancelablePromise, CancelError } =
   await import('../lib/api/generated/index.js');
 const { configureApiClient, listGuestTimeSlots } =
   await import('../lib/api/client.js');
+const { getApiBaseUrl } = await import('../lib/env.js');
 
 describe('generated API client exports', () => {
+  it('uses the same-origin production API path without build-time configuration', () => {
+    assert.equal(getApiBaseUrl(), '/api');
+  });
+
   it('exports DefaultService with expected methods', () => {
     assert.ok(DefaultService);
     assert.equal(

@@ -33,6 +33,27 @@ npm run dev:mock --workspace client
 That command starts Prism on `http://127.0.0.1:4010` alongside Vite and points
 the client at the mock API.
 
+## Docker
+
+Build the production image from the repository root. The build installs the
+committed lockfile exactly, produces the browser assets, and compiles the API
+server:
+
+```sh
+docker build -t booking-service .
+```
+
+Run the complete Booking Service on a non-default port by giving the container
+and the published host port the same value:
+
+```sh
+docker run --rm -e PORT=8080 -p 8080:8080 booking-service
+```
+
+Open `http://localhost:8080`. In the production image, browser requests use the
+same service's `/api` path. The local development commands above continue to run
+Vite and the API as separate processes.
+
 ## API contract generation
 
 `typespec/main.tsp` is the single API contract. After changing it, regenerate

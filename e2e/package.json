@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:e2e": "playwright test",
+    "test": "node --test support/*.test.js",
+    "test:e2e": "cross-env E2E_TARGET=development playwright test",
+    "test:e2e:production": "cross-env E2E_TARGET=production node scripts/run-production-e2e.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -17,6 +19,7 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
+    "cross-env": "^10.1.0",
     "eslint": "^10.8.1",
     "prettier": "^3.9.6",
     "typescript": "^5.9.2",

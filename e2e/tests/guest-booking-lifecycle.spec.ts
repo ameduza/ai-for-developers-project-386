@@ -37,10 +37,10 @@ async function createBookingType(
   request: APIRequestContext,
   bookingType: CreateBookingType,
 ) {
-  const response = await request.post(
-    'http://localhost:3100/owner/booking-types',
-    { data: bookingType },
-  );
+  const apiBaseUrl = process.env.E2E_API_BASE_URL ?? 'http://localhost:3100';
+  const response = await request.post(`${apiBaseUrl}/owner/booking-types`, {
+    data: bookingType,
+  });
 
   expect(response.ok()).toBe(true);
   return (await response.json()) as BookingType;

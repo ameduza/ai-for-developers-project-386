@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import { createApp } from '../app.js';
 
@@ -157,6 +160,61 @@ test('createApp serves requests through a real ephemeral server', async () => {
       );
     },
   );
+});
+
+test('serves production browser routes alongside the API under /api', async () => {
+  const clientDirectory = await mkdtemp(
+    path.join(tmpdir(), 'booking-service-client-'),
+  );
+  await writeFile(
+    path.join(clientDirectory, 'index.html'),
+    '<!doctype html><div id="root">Booking Service</div>',
+  );
+  await writeFile(
+    path.join(clientDirectory, 'app.js'),
+    'globalThis.bookingService = true;',
+  );
+
+  try {
+    await withTestServer(
+      {
+        now: () => new Date('2026-01-01T00:00:00.000Z'),
+        seed: createSeed(),
+        apiBasePath: '/api',
+        clientDirectory,
+        clientOrigin: null,
+      },
+      async (baseUrl) => {
+        const [ownerPage, guestDeepLink, asset, ownerApi, missingApi] =
+          await Promise.all([
+            fetch(`${baseUrl}/owner`),
+            fetch(`${baseUrl}/guest/booking-types/booking-type-1`),
+            fetch(`${baseUrl}/app.js`),
+            fetch(`${baseUrl}/api/owner`, {
+              headers: { Origin: 'https://booking.example' },
+            }),
+            fetch(`${baseUrl}/api/not-a-route`),
+          ]);
+
+        assert.equal(ownerPage.status, 200);
+        assert.match(await ownerPage.text(), /Booking Service/);
+        assert.equal(guestDeepLink.status, 200);
+        assert.match(await guestDeepLink.text(), /Booking Service/);
+        assert.equal(asset.status, 200);
+        assert.match(await asset.text(), /bookingService/);
+        assert.equal(ownerApi.status, 200);
+        assert.equal((await ownerApi.json()).name, 'Test Owner');
+        assert.equal(ownerApi.headers.get('access-control-allow-origin'), null);
+        assert.equal(missingApi.status, 404);
+        assert.doesNotMatch(
+          missingApi.headers.get('content-type') ?? '',
+          /text\/html/,
+        );
+      },
+    );
+  } finally {
+    await rm(clientDirectory, { recursive: true, force: true });
+  }
 });
 
 async function requestApp(

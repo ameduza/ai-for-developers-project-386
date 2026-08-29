@@ -1,6 +1,7 @@
 import cors from 'cors';
-import express, { type Express } from 'express';
+import express, { type Express, type RequestHandler } from 'express';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { z } from 'zod';
 import { createBookingServiceRouter } from './generated/typespec/src/generated/http/router.js';
@@ -12,7 +13,9 @@ import type { Seed } from './repository.js';
 export interface CreateAppOptions {
   now: () => Date;
   seed: Seed;
-  clientOrigin?: string;
+  clientOrigin?: string | null;
+  apiBasePath?: string;
+  clientDirectory?: string;
 }
 
 function errorBody(code: ErrorCode, message: string) {
@@ -88,6 +91,8 @@ export function createApp({
   now,
   seed,
   clientOrigin = 'http://localhost:5173',
+  apiBasePath = '/',
+  clientDirectory,
 }: CreateAppOptions): Express {
   const app = express();
   const { ownerRoutes, bookingTypes, bookings } = createOperations({
@@ -125,9 +130,19 @@ export function createApp({
       },
     },
   );
-  app.use(cors({ origin: clientOrigin }));
-  app.use((request, response, next) =>
+  const corsMiddleware: RequestHandler[] =
+    clientOrigin === null ? [] : [cors({ origin: clientOrigin })];
+  app.use(apiBasePath, ...corsMiddleware, (request, response, next) =>
     dispatchWithBookingRequestValidation(request, response, next, router),
   );
+  if (apiBasePath !== '/') {
+    app.use(apiBasePath, (_request, response) => response.sendStatus(404));
+  }
+  if (clientDirectory) {
+    app.use(express.static(clientDirectory));
+    app.get(/.*/, (_request, response) =>
+      response.sendFile(path.join(clientDirectory, 'index.html')),
+    );
+  }
   return app;
 }

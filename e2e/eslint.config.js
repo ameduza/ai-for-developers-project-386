@@ -3,8 +3,9 @@ import typescriptEslint from 'typescript-eslint';
 
 const sourceFiles = [
   'playwright.config.ts',
+  'scripts/**/*.mjs',
   'tests/**/*.ts',
-  'support/**/*.ts',
+  'support/**/*.{js,ts}',
 ];
 
 export default typescriptEslint.config(

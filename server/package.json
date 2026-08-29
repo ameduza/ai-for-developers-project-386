@@ -11,9 +11,11 @@
     "format:check": "prettier --check .",
     "format:staged": "prettier --write",
     "build:contract": "npm --prefix ../typespec run build:contract",
+    "build": "npm run build:contract && tsc -p tsconfig.build.json",
     "typecheck": "npm run build:contract && tsc --noEmit",
     "test": "npm run build:contract && tsx --test src/__tests__/*.test.ts",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "start:production": "node dist/server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
