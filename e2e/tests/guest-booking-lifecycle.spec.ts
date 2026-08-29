@@ -2,6 +2,7 @@ import {
   expect,
   test,
   type APIRequestContext,
+  type Locator,
   type TestInfo,
 } from '@playwright/test';
 import type {
@@ -44,6 +45,39 @@ async function createBookingType(
 
   expect(response.ok()).toBe(true);
   return (await response.json()) as BookingType;
+}
+
+async function availableTimesScrollState(
+  availableTimes: Locator,
+  timeButton: Locator,
+) {
+  return availableTimes.evaluate(
+    (region, button) => {
+      const scrollContainer = [
+        ...region.querySelectorAll<HTMLElement>('*'),
+      ].find((element) => {
+        const overflowY = window.getComputedStyle(element).overflowY;
+        return overflowY === 'auto' || overflowY === 'scroll';
+      });
+      const timeButton = button as HTMLElement;
+
+      if (!scrollContainer) return null;
+
+      const containerBounds = scrollContainer.getBoundingClientRect();
+      const buttonBounds = timeButton.getBoundingClientRect();
+
+      return {
+        clientHeight: scrollContainer.clientHeight,
+        scrollHeight: scrollContainer.scrollHeight,
+        scrollTop: scrollContainer.scrollTop,
+        containerTop: containerBounds.top,
+        containerBottom: containerBounds.bottom,
+        buttonTop: buttonBounds.top,
+        buttonBottom: buttonBounds.bottom,
+      };
+    },
+    await timeButton.elementHandle(),
+  );
 }
 
 test('Guest can book, review, and cancel an available Time Slot', async ({
@@ -153,5 +187,94 @@ test('Guest can book, review, and cancel an available Time Slot', async ({
     page
       .getByRole('region', { name: 'Available times' })
       .getByRole('button', { name: selectedTime, exact: true }),
+  ).toBeVisible();
+});
+
+test('Guest can browse a full day of Time Slots without page scrolling', async ({
+  page,
+  request,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const journey = createUniqueJourneyData(testInfo);
+  const bookingType = await createBookingType(request, journey.bookingType);
+
+  await page.goto(`/guest/booking-types/${bookingType.id}`);
+  const calendar = page.getByRole('region', { name: 'Calendar' });
+  const fullDay = calendar
+    .getByRole('button')
+    .filter({ hasText: '16 free' })
+    .first();
+  await expect(fullDay).toBeVisible();
+  await fullDay.click();
+
+  const availableTimes = page.getByRole('region', {
+    name: 'Available times',
+  });
+  const timeButtons = availableTimes.getByRole('button');
+  await expect(timeButtons).toHaveCount(16);
+
+  const continueButton = page.getByRole('button', {
+    name: 'Continue',
+    exact: true,
+  });
+  const continueBox = await continueButton.boundingBox();
+  expect(continueBox).not.toBeNull();
+  expect(continueBox!.y + continueBox!.height).toBeLessThanOrEqual(720);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+  const lastTimeButton = timeButtons.last();
+  const initialScrollState = await availableTimesScrollState(
+    availableTimes,
+    lastTimeButton,
+  );
+  expect(initialScrollState).not.toBeNull();
+  expect(initialScrollState!.scrollHeight).toBeGreaterThan(
+    initialScrollState!.clientHeight,
+  );
+  expect(initialScrollState!.buttonBottom).toBeGreaterThan(
+    initialScrollState!.containerBottom,
+  );
+
+  await timeButtons.first().focus();
+  for (let index = 0; index < 16; index += 1) {
+    const timeButton = timeButtons.nth(index);
+    await expect(timeButton).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(timeButton).toHaveAttribute('aria-pressed', 'true');
+
+    if (index < 15) {
+      await page.keyboard.press('Tab');
+    }
+  }
+
+  const focusedScrollState = await availableTimesScrollState(
+    availableTimes,
+    lastTimeButton,
+  );
+  expect(focusedScrollState).not.toBeNull();
+  expect(focusedScrollState!.scrollTop).toBeGreaterThan(0);
+  expect(focusedScrollState!.buttonTop).toBeGreaterThanOrEqual(
+    focusedScrollState!.containerTop,
+  );
+  expect(focusedScrollState!.buttonBottom).toBeLessThanOrEqual(
+    focusedScrollState!.containerBottom,
+  );
+
+  for (let index = 0; index < 16; index += 1) {
+    const timeButton = timeButtons.nth(index);
+    await timeButton.click();
+    await expect(timeButton).toHaveAttribute('aria-pressed', 'true');
+  }
+  await expect(lastTimeButton).toHaveCSS(
+    'background-color',
+    'rgb(255, 241, 235)',
+  );
+  await expect(lastTimeButton).toHaveCSS('border-color', 'rgb(217, 121, 88)');
+
+  await expect(continueButton).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await continueButton.click();
+  await expect(
+    page.getByRole('heading', { name: 'Enter your details', exact: true }),
   ).toBeVisible();
 });
